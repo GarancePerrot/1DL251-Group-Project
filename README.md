@@ -7,15 +7,15 @@ Local, event-driven architecture
 
 - Single- threaded game loop : 
 > updates the game state and provides the output
-> handles player input and manages the turn-based system
+> , handles player input and manages the turn-based system
 
 - Event queue
 > stores players actions as events
-> events are processed sequentially
+> , events are processed sequentially
 
 - Turn-based system 
 > determines the active player
-> ensures only the active one can perform actions
+> , ensures only the active one can perform actions
 
 Language : common agreement on Python. 
 
