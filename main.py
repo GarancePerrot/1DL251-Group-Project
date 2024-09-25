@@ -1,18 +1,17 @@
 import pygame
 import sys
+from game import Game, PlayerColor, PieceType #importing classes from game file 
 
 # Initialize pygame
-pygame.init()
+pygame.init() #init for pygame package 
 
 # Set the dimensions of the game window
-WIDTH, HEIGHT = 300, 600  # Total height is double now
+WIDTH, HEIGHT = 400, 700
 LINE_WIDTH = 5
-CELL_SIZE = WIDTH // 3
+CELL_SIZE = WIDTH // 4  #cell size 100
+GRID_Y_OFFSET = HEIGHT // 2 
 
-# Tic-Tac-Toe grid will be drawn in the bottom half
-GRID_Y_OFFSET = HEIGHT // 2
-
-# Colors
+# Colors rgb value 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -20,64 +19,73 @@ BLUE = (0, 0, 255)
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Tic-Tac-Toe with Turn Indicator")
+pygame.display.set_caption("4-in-a-Row Stacking Game")
 
-# Initialize board
-board = [["" for _ in range(3)] for _ in range(3)]
+# Initialize game
+game = Game() #creating an object for Game class
 
 # Fonts
-font = pygame.font.SysFont(None, 100)
-small_font = pygame.font.SysFont(None, 50)
+font = pygame.font.SysFont(None, 80)
+small_font = pygame.font.SysFont(None, 40)
 
-# Draw grid in the bottom half of the screen
 def draw_grid():
     screen.fill(WHITE)
-    
-    # Vertical lines
-    pygame.draw.line(screen, BLACK, (CELL_SIZE, GRID_Y_OFFSET), (CELL_SIZE, HEIGHT), LINE_WIDTH)
-    pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET), (2 * CELL_SIZE, HEIGHT), LINE_WIDTH)
-    
-    # Horizontal lines
-    pygame.draw.line(screen, BLACK, (0, GRID_Y_OFFSET + CELL_SIZE), (WIDTH, GRID_Y_OFFSET + CELL_SIZE), LINE_WIDTH)
-    pygame.draw.line(screen, BLACK, (0, GRID_Y_OFFSET + 2 * CELL_SIZE), (WIDTH, GRID_Y_OFFSET + 2 * CELL_SIZE), LINE_WIDTH)
+    for i in range(1, 4):
+        pygame.draw.line(screen, BLACK, (i * CELL_SIZE, GRID_Y_OFFSET), (i * CELL_SIZE, HEIGHT), LINE_WIDTH)
+        pygame.draw.line(screen, BLACK, (0, GRID_Y_OFFSET + i * CELL_SIZE), (WIDTH, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)
 
-# Draw Xs and Os
-def draw_marks():
-    for row in range(3):
-        for col in range(3):
-            if board[row][col] == "X":
-                mark = font.render("X", True, RED)
-                screen.blit(mark, (col * CELL_SIZE + CELL_SIZE // 4, GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 8))
-            elif board[row][col] == "O":
-                mark = font.render("O", True, BLUE)
-                screen.blit(mark, (col * CELL_SIZE + CELL_SIZE // 4, GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 8))
+def draw_pieces():
+    for row in range(4):
+        for col in range(4):
+            piece = game.board[row][col]
+            if piece.type != PieceType.EMPTY:
+                color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
+                x = col * CELL_SIZE + CELL_SIZE // 2
+                y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2
+                if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
+                    pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
+                else:
+                    pygame.draw.rect(screen, color, (x - CELL_SIZE // 4, y - CELL_SIZE // 4, CELL_SIZE // 2, CELL_SIZE // 2))
+                # Draw stack height
+                if piece.height > 1:
+                    height_text = small_font.render(str(piece.height), True, RED if color == BLACK else BLUE)
+                    screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
 
-# Show the current player's turn
-def draw_turn_indicator(current_turn):
-    turn_text = small_font.render(f"Turn: {current_turn}", True, BLACK)
+def draw_turn_indicator():
+    current_player = "Black" if game.get_current_player() == PlayerColor.BLACK else "White"
+    turn_text = small_font.render(f"Turn: {current_player}", True, BLACK)
     screen.blit(turn_text, (WIDTH // 2 - turn_text.get_width() // 2, HEIGHT // 4 - turn_text.get_height() // 2))
 
-# Check for a mouse click and place mark
+def draw_piece_counts():
+    black_count = game.get_remaining_pieces(PlayerColor.BLACK)
+    white_count = game.get_remaining_pieces(PlayerColor.WHITE)
+    black_text = small_font.render(f"Black: {black_count}", True, BLACK)
+    white_text = small_font.render(f"White: {white_count}", True, BLACK)
+    screen.blit(black_text, (10, 10))
+    screen.blit(white_text, (WIDTH - white_text.get_width() - 10, 10))
+
+def draw_mode_indicator(place_mode):
+    mode_text = small_font.render("Mode: Place" if place_mode else "Mode: Move", True, BLACK)
+    screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 4 + 30))
+
 def handle_click():
     x, y = pygame.mouse.get_pos()
-    
-    # Only register clicks within the grid area
     if y >= GRID_Y_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = x // CELL_SIZE
-        if board[row][col] == "":
-            return row, col
+        return row, col
     return None
 
-# Main game loop
 def game_loop():
-    current_turn = "X"
-    running = True
+    place_mode = True
+    selected_piece = None
 
-    while running:
+    while True:
         draw_grid()
-        draw_marks()
-        draw_turn_indicator(current_turn)
+        draw_pieces()
+        draw_turn_indicator()
+        draw_piece_counts()
+        draw_mode_indicator(place_mode)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -88,9 +96,38 @@ def game_loop():
                 click_position = handle_click()
                 if click_position:
                     row, col = click_position
-                    board[row][col] = current_turn
-                    current_turn = "O" if current_turn == "X" else "X"
-        
+                    current_player = game.get_current_player()
+                    
+                    if place_mode:
+                        # Place a piece
+                        is_standing = event.button == 3  # Right-click for standing piece
+                        if game.place_piece(row, col, current_player, is_standing):
+                            game.switch_turn()
+                    else:
+                        # Move a piece
+                        if selected_piece:
+                            from_row, from_col = selected_piece
+                            if game.move_piece(from_row, from_col, row, col):
+                                game.switch_turn()
+                            selected_piece = None
+                        else:
+                            selected_piece = (row, col)
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    place_mode = not place_mode
+                    selected_piece = None
+
+        if game.check_win(PlayerColor.BLACK):
+            print("Black wins!")
+            break
+        elif game.check_win(PlayerColor.WHITE):
+            print("White wins!")
+            break
+        elif game.is_draw():
+            print("It's a draw!")
+            break
+
         pygame.display.update()
 
 # Start the game
