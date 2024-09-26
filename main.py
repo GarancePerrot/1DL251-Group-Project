@@ -48,10 +48,13 @@ def draw_pieces():
                 color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
                 x = GRID_X_OFFSET + col * CELL_SIZE + CELL_SIZE // 2 # middle of x axis
                 y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2 # middle of y axis
+                                # Replace circle with rectangle for lying pieces
+                                # Replace circle with rectangle for lying pieces
                 if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
-                    pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
+                    pygame.draw.rect(screen, color, (x - CELL_SIZE // 4, y - CELL_SIZE // 8, CELL_SIZE // 2, CELL_SIZE // 4))  # Lying pieces as horizontal rectangles
                 else:
-                    pygame.draw.rect(screen, color, (x - CELL_SIZE // 4, y - CELL_SIZE // 4, CELL_SIZE // 2, CELL_SIZE // 2))
+                    pygame.draw.rect(screen, color, (x - CELL_SIZE // 8, y - CELL_SIZE // 4, CELL_SIZE // 4, CELL_SIZE // 2))  # Standing pieces as vertical rectangles
+
                 # Draw stack height
                 if piece.height > 1:
                     height_text = small_font.render(str(piece.height), True, RED if color == BLACK else BLUE)
