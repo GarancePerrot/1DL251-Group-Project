@@ -72,16 +72,26 @@ def draw_restart_button():
     restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
     screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
 
+
 def draw_end_message(winner):
-    # This function displays the end game message
-    if winner:
-        end_message = f"{winner} Wins! Click Restart to continue."
+    # Only show "Black Wins" or "White Wins"
+    if winner == "Black":
+        end_message = "Black Wins!"
+    elif winner == "White":
+        end_message = "White Wins!"
     else:
-        end_message = "It's a Draw! Click Restart to continue."
-    
-    # Render the end message above the Turn indicator
+        end_message = "It's a Draw!"  # In case of a draw, though it's less likely with your conditions
+
+    # Render the end message
     end_text = small_font.render(end_message, True, BLACK)
-    screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 4 - 80))  # Position above the Turn area
+
+    # Place the text to the left of the Restart button
+    text_x = restart_button_rect.x - end_text.get_width() - 20  # 20 pixels padding to the left of the Restart button
+    text_y = restart_button_rect.centery - end_text.get_height() // 2  # Center vertically with the Restart button
+
+    # Blit the text onto the screen
+    screen.blit(end_text, (text_x, text_y))
+
 
 def draw_changeView_button():
     global changeView_button_rect  # Use the global variable
@@ -177,7 +187,7 @@ def draw_mode_indicator(place_mode):
 def draw_game(place_mode,change_view):
     draw_grid()
     draw_info_button()
-    draw_pieces()
+    draw_pieces(change_view)
     draw_turn_indicator()
     draw_piece_counts()
     draw_mode_indicator(place_mode)
@@ -199,7 +209,14 @@ def handle_click():
     global changeView_button_rect
     if info_button_rect and info_button_rect.collidepoint(x, y):
         return "Info Button"
+    if changeView_button_rect and changeView_button_rect.collidepoint(x, y):
+        return "ChangeView Button"
     
+    # Check if the click is on the Restart button
+    global restart_button_rect  # Access the global variable
+    if restart_button_rect and restart_button_rect.collidepoint(x, y):
+        return "Restart Button"
+
     return None
 
 
@@ -275,9 +292,17 @@ def game_loop():
     place_mode = True
     selected_piece = None
     popup_open = False  # Popup state
+    change_view = False
+    game_end = False  # Track if the game is over
+    winner = None  # Track the winner
 
     while True:
-        draw_game(place_mode)
+        draw_game(place_mode,change_view)
+        draw_restart_button()
+        
+        if game_end:
+            draw_end_message(winner)  # Displays a prompt at the end of the game
+
 
         if popup_open:
             button_rect = draw_popup()  # Draw the popup and get the button rect
@@ -311,6 +336,16 @@ def game_loop():
                     if click_position == "Info Button":
                         print("Info button clicked")
                         popup_open = not popup_open
+                        
+                    elif click_position == "Restart Button":
+                        print("Restart button clicked")
+                        game.restart_game()  # Reset the game
+                        print("Game restarted")
+                        
+                    elif click_position == "ChangeView Button":
+                        print("Change View button clicked")
+                        change_view = not change_view
+                        
                     elif click_position != "Info Button" and click_position is not None:
                         row, col = click_position
                         current_player = game.get_current_player()
@@ -343,12 +378,11 @@ def game_loop():
                     if button_rect.collidepoint(mouse_x, mouse_y):
                         popup_open = False  # Close the popup when button is clicked
 
-        # Check if the game is over
         if not game_end:
-            if game.check_win(PlayerColor.BLACK):
+            if game.check_win_dfs(PlayerColor.BLACK):
                 winner = "Black"
                 game_end = True
-            elif game.check_win(PlayerColor.WHITE):
+            elif game.check_win_dfs(PlayerColor.WHITE):
                 winner = "White"
                 game_end = True
             elif game.is_draw():
