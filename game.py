@@ -1,5 +1,5 @@
-# TEST FEEL FREE TO DELETE ONLY FOR FOLDER STRUCTURE
 from enum import Enum
+
 
 class PieceType(Enum):
     EMPTY = 0
@@ -8,20 +8,28 @@ class PieceType(Enum):
     WHITE_LYING = 3
     WHITE_STANDING = 4
 
+
 class PlayerColor(Enum):
     BLACK = 0
     WHITE = 1
 
-class Piece:
-    def __init__(self, type=PieceType.EMPTY, height=0):
-        self.type = type
+MAX_STACK_HEIGHT = 4
+class Stack():
+    def __init__(self, height=0):
+        self.stack = [Piece() for _ in range(MAX_STACK_HEIGHT)]
         self.height = height
+
+
+class Piece:
+    def __init__(self, type=PieceType.EMPTY):
+        self.type = type
+
 
 class Game:
     def __init__(self):
         self.GRID_SIZE = 4
         self.MAX_STACK_HEIGHT = 4
-        self.board = [[Piece() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)] #inner and outer list
+        self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]
         self.current_player = PlayerColor.BLACK
         self.black_pieces_left = 15
         self.white_pieces_left = 15
@@ -31,10 +39,12 @@ class Game:
             return False
 
         piece_type = PieceType.BLACK_STANDING if color == PlayerColor.BLACK and is_standing else \
-                     PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
-                     PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING
+            PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
+                PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING
 
-        self.board[row][col] = Piece(piece_type, self.board[row][col].height + 1)
+        stack = self.board[row][col]
+        stack.stack[stack.height] = Piece(piece_type)
+        stack.height += 1
 
         if color == PlayerColor.BLACK:
             self.black_pieces_left -= 1
@@ -44,11 +54,20 @@ class Game:
         return True
 
     def move_piece(self, from_row, from_col, to_row, to_col):
-        if not self.is_valid_move(to_row, to_col) or self.board[from_row][from_col].type == PieceType.EMPTY:
+        if not self.is_valid_move(to_row, to_col) or self.board[from_row][from_col].stack[0].type == PieceType.EMPTY:
             return False
 
-        self.board[to_row][to_col] = self.board[from_row][from_col]
-        self.board[from_row][from_col] = Piece()
+        # Move the top piece from the source stack to the destination stack
+        source_stack = self.board[from_row][from_col]
+        dest_stack = self.board[to_row][to_col]
+
+        # Check if destination stack has space
+        if dest_stack.height < self.MAX_STACK_HEIGHT:
+            dest_stack.stack[dest_stack.height] = source_stack.stack[source_stack.height - 1]
+            dest_stack.height += 1
+            source_stack.height -= 1
+            source_stack.stack[source_stack.height] = Piece()  # Reset the slot after moving
+
         return True
 
     def check_win(self, color):
@@ -57,15 +76,15 @@ class Game:
         # Check horizontal and vertical
         for i in range(self.GRID_SIZE):
             for j in range(self.GRID_SIZE - 3):
-                if all(self.board[i][j+k].type == target_type for k in range(4)) or \
-                   all(self.board[j+k][i].type == target_type for k in range(4)):
+                if all(self.board[i][j + k].stack[self.board[i][j + k].height - 1].type == target_type for k in range(4)) or \
+                        all(self.board[j + k][i].stack[self.board[j + k][i].height - 1].type == target_type for k in range(4)):
                     return True
 
         # Check diagonals
         for i in range(self.GRID_SIZE - 3):
             for j in range(self.GRID_SIZE - 3):
-                if all(self.board[i+k][j+k].type == target_type for k in range(4)) or \
-                   all(self.board[i+k][j+3-k].type == target_type for k in range(4)):
+                if all(self.board[i + k][j + k].stack[self.board[i + k][j + k].height - 1].type == target_type for k in range(4)) or \
+                        all(self.board[i + k][j + 3 - k].stack[self.board[i + k][j + 3 - k].height - 1].type == target_type for k in range(4)):
                     return True
 
         return False
@@ -84,12 +103,6 @@ class Game:
 
     def is_valid_move(self, row, col):
         return 0 <= row < self.GRID_SIZE and 0 <= col < self.GRID_SIZE and \
-               self.board[row][col].height < self.MAX_STACK_HEIGHT and \
-               self.board[row][col].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
-
-    def restart_game(self):
-        self.board = [[Piece() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board
-        self.current_player = PlayerColor.BLACK  # Reset to player 1
-        self.black_pieces_left = 15  # Reset black pieces
-        self.white_pieces_left = 15  # Reset white pieces
-        print("Game reset successful")
+            self.board[row][col].height < self.MAX_STACK_HEIGHT and \
+            self.board[row][col].stack[self.board[row][col].height - 1].type not in [PieceType.BLACK_STANDING,
+                                                                                     PieceType.WHITE_STANDING]
