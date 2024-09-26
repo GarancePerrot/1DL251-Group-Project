@@ -54,6 +54,28 @@ def draw_info_button():
     info_text = small_font.render("Info", True, BLACK)  # Add text to the button
     screen.blit(info_text, (info_button_rect.centerx - info_text.get_width() // 2, info_button_rect.centery - info_text.get_height() // 2))
 
+def draw_restart_button():
+    global restart_button_rect  # Use the global variable
+
+    # Align Restart button vertically below the Info button
+    restart_button_rect = pygame.Rect(WIDTH // 2 - 50, 60, 100, 40)  # Below Info button (same size and style)
+
+    pygame.draw.rect(screen, DARKER_CREME, restart_button_rect)  # Same color as Info button
+    # Draw border rect
+    pygame.draw.rect(screen, BLACK, restart_button_rect, 3)  # Same border style as Info button
+    restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
+    screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
+
+def draw_end_message(winner):
+    # This function displays the end game message
+    if winner:
+        end_message = f"{winner} Wins! Click Restart to continue."
+    else:
+        end_message = "It's a Draw! Click Restart to continue."
+    
+    # Render the end message above the Turn indicator
+    end_text = small_font.render(end_message, True, BLACK)
+    screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 4 - 80))  # Position above the Turn area
 
 
 # Draw pieces function
@@ -101,6 +123,7 @@ def draw_mode_indicator(place_mode):
 def draw_game(place_mode):
     draw_grid()
     draw_info_button()
+    draw_restart_button()
     draw_pieces()
     draw_turn_indicator()
     draw_piece_counts()
@@ -120,6 +143,11 @@ def handle_click():
     global info_button_rect  # Access the global variable
     if info_button_rect and info_button_rect.collidepoint(x, y):
         return "Info Button"
+    
+    # Check if the click is on the Restart button
+    global restart_button_rect  # Access the global variable
+    if restart_button_rect and restart_button_rect.collidepoint(x, y):
+        return "Restart Button"
     
     return None
 
@@ -193,9 +221,15 @@ def game_loop():
     place_mode = True
     selected_piece = None
     popup_open = False  # Popup state
+    game_end = False  # Track if the game is over
+    winner = None  # Track the winner
 
     while True:
         draw_game(place_mode)
+        draw_restart_button()
+        
+        if game_end:
+            draw_end_message(winner)  # Displays a prompt at the end of the game
 
         if popup_open:
             button_rect = draw_popup()  # Draw the popup and get the button rect
@@ -204,6 +238,22 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+                
+            # Detect the Restart button click (even when the game is over)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+
+                # Click the Restart button to restart the game at any time
+                if restart_button_rect.collidepoint(mouse_x, mouse_y):
+                    game.restart_game()  
+                    game_end = False  # Reset the game end state
+                    winner = None  # Reset winner
+                    continue  # Restart the game loop
+
+                # If the game is over, the placement or movement of pieces is no longer handled
+                if game_end:
+                    continue
+
 
             if not popup_open:  # Don't process game events when popup is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -213,6 +263,12 @@ def game_loop():
                     if click_position == "Info Button":
                         print("Info button clicked")
                         popup_open = not popup_open
+                        
+                    elif click_position == "Restart Button":
+                        print("Restart button clicked")
+                        game.restart_game()  # Reset the game
+                        print("Game restarted")
+                        
                     elif click_position != "Info Button" and click_position is not None:
                         row, col = click_position
                         current_player = game.get_current_player()
@@ -245,15 +301,16 @@ def game_loop():
                     if button_rect.collidepoint(mouse_x, mouse_y):
                         popup_open = False  # Close the popup when button is clicked
 
-        if game.check_win(PlayerColor.BLACK):
-            print("Black wins!")
-            break
-        elif game.check_win(PlayerColor.WHITE):
-            print("White wins!")
-            break
-        elif game.is_draw():
-            print("It's a draw!")
-            break
+        # Check if the game is over
+        if not game_end:
+            if game.check_win(PlayerColor.BLACK):
+                winner = "Black"
+                game_end = True
+            elif game.check_win(PlayerColor.WHITE):
+                winner = "White"
+                game_end = True
+            elif game.is_draw():
+                game_end = True
 
         pygame.display.update()
 

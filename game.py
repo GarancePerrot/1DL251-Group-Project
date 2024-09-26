@@ -87,3 +87,9 @@ class Game:
                self.board[row][col].height < self.MAX_STACK_HEIGHT and \
                self.board[row][col].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
 
+    def restart_game(self):
+        self.board = [[Piece() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board
+        self.current_player = PlayerColor.BLACK  # Reset to player 1
+        self.black_pieces_left = 15  # Reset black pieces
+        self.white_pieces_left = 15  # Reset white pieces
+        print("Game reset successful")
