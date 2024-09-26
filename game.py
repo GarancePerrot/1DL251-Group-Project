@@ -1,4 +1,5 @@
-# TEST FEEL FREE TO DELETE ONLY FOR FOLDER STRUCTUREfrom enum import Enum
+# TEST FEEL FREE TO DELETE ONLY FOR FOLDER STRUCTURE
+from enum import Enum
 
 class PieceType(Enum):
     EMPTY = 0
