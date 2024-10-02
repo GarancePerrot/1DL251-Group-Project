@@ -12,6 +12,7 @@ LINE_WIDTH = 3
 CELL_SIZE = WIDTH // 8  # cell size 100
 GRID_Y_OFFSET = HEIGHT - CELL_SIZE * 4 - MARGIN_BOTTOM  # place grid at the bottom
 GRID_X_OFFSET = CELL_SIZE * 2
+BORDER_RADIUS = 5
 
 # Colors rgb value
 WHITE = (255, 255, 255)
@@ -52,11 +53,11 @@ changeView_button_rect = None
 
 def draw_info_button():
     global info_button_rect  # Use the global variable
-    info_button_rect = pygame.Rect(WIDTH // 2 - 50, 10, 100, 40)  # Create a rectangle for the button
-    pygame.draw.rect(screen, DARKER_CREME, info_button_rect)  # Draw the button
+    info_button_rect = pygame.Rect(WIDTH - 50, 10, 30, 30)  # Create a rectangle for the button
+    pygame.draw.rect(screen, DARKER_CREME, info_button_rect, border_radius=50)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, info_button_rect, 3)
-    info_text = small_font.render("Info", True, BLACK)  # Add text to the button
+    pygame.draw.rect(screen, BLACK, info_button_rect, 3, border_radius=50)
+    info_text = small_font.render("i", True, BLACK)  # Add text to the button
     screen.blit(info_text, (
     info_button_rect.centerx - info_text.get_width() // 2, info_button_rect.centery - info_text.get_height() // 2))
 
@@ -64,11 +65,11 @@ def draw_restart_button():
     global restart_button_rect  # Use the global variable
 
     # Align Restart button vertically below the Info button
-    restart_button_rect = pygame.Rect(WIDTH // 2 - 50, 60, 100, 40)  # Below Info button (same size and style)
+    restart_button_rect = pygame.Rect(WIDTH // 2 - 60, 10, 120, 45)  # Below Info button (same size and style)
 
     pygame.draw.rect(screen, DARKER_CREME, restart_button_rect)  # Same color as Info button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, restart_button_rect, 3)  # Same border style as Info button
+    pygame.draw.rect(screen, BLACK, restart_button_rect, 3, border_radius=BORDER_RADIUS)  # Same border style as Info button
     restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
     screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
 
@@ -95,10 +96,10 @@ def draw_end_message(winner):
 
 def draw_changeView_button():
     global changeView_button_rect  # Use the global variable
-    changeView_button_rect = pygame.Rect(WIDTH - 250, 100, 200, 50)  # Create a rectangle for the button
+    changeView_button_rect = pygame.Rect(WIDTH // 2 - 100, 60, 200, 50)  # Create a rectangle for the button
     pygame.draw.rect(screen, DARKER_CREME, changeView_button_rect)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3)
+    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3, border_radius=BORDER_RADIUS)
     changeView_text = small_font.render("Change View", True, BLACK)  # Add text to the button
     screen.blit(changeView_text, (
     changeView_button_rect.centerx - changeView_text.get_width() // 2, changeView_button_rect.centery - changeView_text.get_height() // 2))
@@ -161,7 +162,7 @@ def draw_pieces(change_view):
 def draw_turn_indicator():
     current_player = "Black" if game.get_current_player() == PlayerColor.BLACK else "White"
     turn_text = small_font.render(f"Turn: {current_player}", True, BLACK)
-    screen.blit(turn_text, (WIDTH // 2 - turn_text.get_width() // 2, HEIGHT // 5 - turn_text.get_height() // 2))
+    screen.blit(turn_text, (WIDTH // 2 - turn_text.get_width() // 2, (HEIGHT + 50) // 5 - turn_text.get_height() // 2))
 
 
 # Draw piece counts function
@@ -170,8 +171,8 @@ def draw_piece_counts():
     white_count = game.get_remaining_pieces(PlayerColor.WHITE)
     black_text = small_font.render(f"Black: {black_count} pcs", True, BLACK)
     white_text = small_font.render(f"White: {white_count} pcs", True, BLACK)
-    screen.blit(black_text, (10, 10))
-    screen.blit(white_text, (WIDTH - white_text.get_width() - 10, 10))
+    screen.blit(black_text, (10, 100))
+    screen.blit(white_text, (WIDTH - white_text.get_width() - 10, 100))
 
 
 # Draw mode indicator function
@@ -228,7 +229,7 @@ def draw_popup():
     screen.blit(overlay, (0, 0))
 
     # Increase the size of the popup box
-    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 2 // 3)
+    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 12, WIDTH * 2 // 3, HEIGHT * 2.5 // 3)
     pygame.draw.rect(screen, WHITE, popup_rect)
 
     # Adjust the size of the popup title
@@ -237,7 +238,7 @@ def draw_popup():
     screen.blit(title, (popup_rect.centerx - title.get_width() // 2, popup_rect.y + 20))
 
     # Reduce text size and wrap it within the popup
-    rule_font = pygame.font.SysFont(None, 30)  # Smaller text size for readability
+    rule_font = pygame.font.SysFont(None, 27)  # Smaller text size for readability
     rules = [
         "• The goal is to create a path from one side of the board to the other.",
         "• Each player has 15 pieces to place on the 4x4 grid.",
@@ -249,7 +250,7 @@ def draw_popup():
     ]
 
     # Render and wrap text within the popup window
-    y_offset = 100  # Start y position for rules
+    y_offset = 80  # Start y position for rules
     for rule in rules:
         wrapped_text = wrap_text(rule, rule_font, popup_rect.width - 40)  # Wrap text manually
         for line in wrapped_text:
@@ -258,8 +259,8 @@ def draw_popup():
             y_offset += rule_text.get_height() + 10  # Add spacing between lines
 
     # Draw the Close button
-    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 80, 200, 50)
-    pygame.draw.rect(screen, GREEN, button_rect)
+    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 60, 200, 50)
+    pygame.draw.rect(screen, GREEN, button_rect, border_radius=BORDER_RADIUS)
     button_text = rule_font.render("Close", True, BLACK)
     screen.blit(button_text, (
     button_rect.centerx - button_text.get_width() // 2, button_rect.centery - button_text.get_height() // 2))
