@@ -228,28 +228,30 @@ def draw_popup():
     screen.blit(overlay, (0, 0))
 
     # Increase the size of the popup box
-    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 2 // 3)
+    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 4//5 )
     pygame.draw.rect(screen, WHITE, popup_rect)
 
-    # Adjust the size of the popup title
-    title_font = pygame.font.SysFont(None, 60)  # Smaller header size
-    title = title_font.render("Game Rules", True, BLACK)
-    screen.blit(title, (popup_rect.centerx - title.get_width() // 2, popup_rect.y + 20))
+   # Adjust the size of the popup title
+    title_font = pygame.font.SysFont(None, 30)  # Smaller header size
+    title = title_font.render("GAME RULES", True, BLACK)
+    # screen.blit(title, (popup_rect.centerx - title.get_width() // 2 , popup_rect.y + 20))
+    screen.blit(title, (popup_rect.centerx - title.get_width() // 2 , popup_rect.y + 12))
 
     # Reduce text size and wrap it within the popup
-    rule_font = pygame.font.SysFont(None, 30)  # Smaller text size for readability
+    rule_font = pygame.font.SysFont(None, 29)  # Smaller text size for readability
     rules = [
-        "• The goal is to create a path from one side of the board to the other.",
-        "• Each player has 15 pieces to place on the 4x4 grid.",
-        "• Players can either move or place a piece each turn.",
-        "• Players can place pieces either lying down or standing.",
-        "• Left-click to place a lying piece, right-click for standing.",
-        "• Pieces can stack up to 4 high, but only lying pieces can form a row.",
-        "• After placing all pieces, players can move their pieces to continue playing."
+        "• Goal: Create a path from one side of the board to the opposite side.",
+        "• Setup: Each player has 15 pieces to place on the 4x4 grid.",
+        "• Gameplay:                                              ",
+        "  - Players take turns placing or moving pieces.",
+        "  - Pieces can be placed either lying or standing.",
+        "  - Left-click to place a lying piece, right-click to place a standing piece.",
+        "  - Pieces can stack up to 4 high, but only lying pieces can form a path.",
+        "  - After placing all pieces, players can move their pieces to continue playing."
     ]
 
     # Render and wrap text within the popup window
-    y_offset = 100  # Start y position for rules
+    y_offset = 40  # Start y position for rules
     for rule in rules:
         wrapped_text = wrap_text(rule, rule_font, popup_rect.width - 40)  # Wrap text manually
         for line in wrapped_text:
@@ -258,7 +260,8 @@ def draw_popup():
             y_offset += rule_text.get_height() + 10  # Add spacing between lines
 
     # Draw the Close button
-    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 80, 200, 50)
+    # button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 80, 200, 50)
+    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 48, 200, 40)
     pygame.draw.rect(screen, GREEN, button_rect)
     button_text = rule_font.render("Close", True, BLACK)
     screen.blit(button_text, (
