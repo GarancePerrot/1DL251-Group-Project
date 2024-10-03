@@ -33,17 +33,40 @@ game = Game()  # creating an object for Game class
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
 
+last_clicked_square = None  # Stores the last clicked square
+valid_moves = []  # Stores valid adjacent moves
+
+
 
 # Draw grid function
-def draw_grid():
+def draw_grid(place_mode):
     screen.fill(CREME)
 
-    # Draw grid lines                            X1                 Y1                   X2           Y2
+    # Draw grid lines and highlight clicked square
     for i in range(5):
         pygame.draw.line(screen, BLACK, ((i + 2) * CELL_SIZE, GRID_Y_OFFSET),
                          ((i + 2) * CELL_SIZE, HEIGHT - MARGIN_BOTTOM), LINE_WIDTH)  # vertical lines
         pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE),
                          (WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
+
+    # Highlight the clicked square if it exists
+    if last_clicked_square is not None and not place_mode:
+        row, col = last_clicked_square
+        x = GRID_X_OFFSET + col * CELL_SIZE
+        y = GRID_Y_OFFSET + row * CELL_SIZE
+
+        # Draw a rectangle to highlight the clicked square
+        highlight_color = (97, 74, 47)  # Less vibrant brown
+        pygame.draw.rect(screen, highlight_color, (x, y, CELL_SIZE, CELL_SIZE), 5)  # 5 pixel border
+
+    # Highlight valid adjacent moves
+    if not place_mode:
+        for row, col in valid_moves:
+            x = GRID_X_OFFSET + col * CELL_SIZE
+            y = GRID_Y_OFFSET + row * CELL_SIZE
+            pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
+
+
 
 
 # Info button
@@ -184,8 +207,8 @@ def draw_mode_indicator(place_mode):
     screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
 
 # Draw game function
-def draw_game(place_mode,change_view):
-    draw_grid()
+def draw_game(place_mode, change_view):
+    draw_grid(place_mode)  # This now includes the selected square and valid moves
     draw_info_button()
     draw_pieces(change_view)
     draw_turn_indicator()
@@ -194,30 +217,51 @@ def draw_game(place_mode,change_view):
     draw_changeView_button()
 
 
+
+def get_valid_moves(row, col):
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
+    moves = []
+
+    for dr, dc in directions:
+        new_row, new_col = row + dr, col + dc
+        if 0 <= new_row < game.GRID_SIZE and 0 <= new_col < game.GRID_SIZE:
+            if game.is_valid_move(new_row, new_col):  # Check if the move is valid
+                moves.append((new_row, new_col))
+
+    return moves
+
+
+def reset_visuals():
+    global last_clicked_square, valid_moves
+    last_clicked_square = None
+    valid_moves = []
+
 # Handle mouse click function
 def handle_click():
+    global last_clicked_square, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
-    if y >= GRID_Y_OFFSET:
+    if y >= GRID_Y_OFFSET and x >= GRID_X_OFFSET and y <= HEIGHT - MARGIN_BOTTOM and x <= WIDTH - GRID_X_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = (x - GRID_X_OFFSET) // CELL_SIZE
+        last_clicked_square = (row, col)  # Store the last clicked square
+        valid_moves = get_valid_moves(row, col)  # Get valid adjacent moves
         return row, col
 
-    # Check if the click is on the Info button
-    global info_button_rect  # Access the global variable
-    global changeView_button_rect
+    # Check if the click is on the Info, Change View, or Restart buttons
+    global info_button_rect, changeView_button_rect, restart_button_rect
     if info_button_rect and info_button_rect.collidepoint(x, y):
         return "Info Button"
     if changeView_button_rect and changeView_button_rect.collidepoint(x, y):
         return "ChangeView Button"
-    
-    # Check if the click is on the Restart button
-    global restart_button_rect  # Access the global variable
     if restart_button_rect and restart_button_rect.collidepoint(x, y):
         return "Restart Button"
 
     return None
+
+
+
 
 
 # Draw popup with rules
@@ -295,6 +339,8 @@ def game_loop():
     change_view = False
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    global valid_moves
+    global last_clicked_square
 
     while True:
         draw_game(place_mode,change_view)
@@ -340,6 +386,7 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
+                        reset_visuals()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
@@ -355,13 +402,14 @@ def game_loop():
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
+                                reset_visuals()
                         else:
                             # Move a piece
                             if selected_piece:
                                 from_row, from_col = selected_piece
                                 if game.move_piece(from_row, from_col, row, col):
                                     game.switch_turn()
-                                selected_piece = None
+                                    reset_visuals()
                             else:
                                 selected_piece = (row, col)
 
