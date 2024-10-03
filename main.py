@@ -1,5 +1,6 @@
 import pygame
 import sys
+import time
 from game import Game, PlayerColor, PieceType  # importing classes from game file
 
 # Initialize pygame
@@ -49,6 +50,7 @@ def draw_grid():
 # Info button
 info_button_rect = None  # Global variable
 changeView_button_rect = None
+Timer_button_rect = None
 
 def draw_info_button():
     global info_button_rect  # Use the global variable
@@ -71,6 +73,17 @@ def draw_restart_button():
     pygame.draw.rect(screen, BLACK, restart_button_rect, 3)  # Same border style as Info button
     restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
     screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
+    
+def draw_timer_button(timer):
+    global Timer_button_rect # Use the global variable
+    Timer_button_rect = pygame.Rect(50, 100, 220, 50) 
+    # changeView_button_rect = pygame.Rect(WIDTH - 250, 100, 200, 50) 
+    pygame.draw.rect(screen, DARKER_CREME, Timer_button_rect)  # Draw the button
+    # Draw border rect
+    pygame.draw.rect(screen, BLACK, Timer_button_rect, 3)
+    Timer_text = small_font.render("Timer: "+timer+" (min)", True, BLACK)  # Add text to the button
+    screen.blit(Timer_text, (
+    Timer_button_rect.centerx - Timer_text.get_width() // 2, Timer_button_rect.centery - Timer_text.get_height() // 2))
 
 
 def draw_end_message(winner):
@@ -184,9 +197,10 @@ def draw_mode_indicator(place_mode):
     screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
 
 # Draw game function
-def draw_game(place_mode,change_view):
+def draw_game(place_mode,change_view, timer):
     draw_grid()
     draw_info_button()
+    draw_timer_button(timer)
     draw_pieces(change_view)
     draw_turn_indicator()
     draw_piece_counts()
@@ -207,10 +221,14 @@ def handle_click():
     # Check if the click is on the Info button
     global info_button_rect  # Access the global variable
     global changeView_button_rect
+    global Timer_button_rect
+    
     if info_button_rect and info_button_rect.collidepoint(x, y):
         return "Info Button"
     if changeView_button_rect and changeView_button_rect.collidepoint(x, y):
         return "ChangeView Button"
+    if Timer_button_rect and Timer_button_rect.collidepoint(x, y):
+        return "Timer Button"
     
     # Check if the click is on the Restart button
     global restart_button_rect  # Access the global variable
@@ -269,6 +287,61 @@ def draw_popup():
 
     return button_rect
 
+# Draw popup for optional timer
+def draw_popup_timer():
+    # The button title will have the current timer (default 0) "Set Timer: 0"
+    
+    # Draw a slightly less transparent overlay
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 200))  # Less transparent black
+    screen.blit(overlay, (0, 0))
+
+    # Increase the size of the popup box
+    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 2 // 3)
+    pygame.draw.rect(screen, WHITE, popup_rect)
+
+    # Adjust the size of the popup title
+    title_font = pygame.font.SysFont(None, 30)  
+    title = title_font.render("SET TIMER", True, BLACK)
+    screen.blit(title, (popup_rect.centerx - title.get_width() // 2, popup_rect.y + 12))
+
+    text_font = pygame.font.SysFont(None, 29)
+    text = text_font.render("Select a timer (min) for game rounds:", True, BLACK)
+    screen.blit(text, (popup_rect.centerx - text.get_width() // 2, popup_rect.y + 50))
+
+    #array with 0 to 10 minute buttons aligned in a row:
+    button_width = 40  
+    button_height = 40  
+    spacing = 8  
+    total_width = 11 * button_width + 10 * spacing  # Total width of all buttons and spaces
+    
+    start_x = popup_rect.centerx - total_width // 2  # Starting x-position to center the buttons
+    button_y = popup_rect.y + popup_rect.height // 2  # Adjust the y-position of the buttons
+
+    # Timer buttons (0 to 10 minutes)
+    timer_array = [pygame.Rect(start_x + i * (button_width + spacing), button_y, button_width, button_height) for i in range(11)]
+    
+    #handle first button (infinity):
+    pygame.draw.rect(screen, GREEN, timer_array[0])
+    nb = text_font.render("inf", True, BLACK)
+    screen.blit(nb, (timer_array[0].centerx - nb.get_width() // 2, timer_array[0].centery - nb.get_height() // 2))
+    
+    for i in range(1,11):
+        pygame.draw.rect(screen, GREEN, timer_array[i])
+        nb = text_font.render(str(i), True, BLACK)
+        screen.blit(nb, (timer_array[i].centerx - nb.get_width() // 2, timer_array[i].centery - nb.get_height() // 2))
+
+    # Draw the Cancel button below the timer buttons
+    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 60, 200, 40)
+    pygame.draw.rect(screen, GREEN, button_rect)
+    button_text = text_font.render("Cancel", True, BLACK)
+    screen.blit(button_text, (
+        button_rect.centerx - button_text.get_width() // 2, button_rect.centery - button_text.get_height() // 2))
+
+    return button_rect, timer_array
+
+
+
 
 # Helper function to wrap text into lines
 def wrap_text(text, font, max_width):
@@ -294,13 +367,15 @@ def wrap_text(text, font, max_width):
 def game_loop():
     place_mode = True
     selected_piece = None
-    popup_open = False  # Popup state
+    popup_open = False  # Popup state (for info button)
+    popup_2_open = False # popup state (for setting optional timer)
     change_view = False
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    timer = "inf" #infinity  = no timer by default
 
     while True:
-        draw_game(place_mode,change_view)
+        draw_game(place_mode,change_view, timer)
         draw_restart_button()
         
         if game_end:
@@ -308,7 +383,10 @@ def game_loop():
 
 
         if popup_open:
-            button_rect = draw_popup()  # Draw the popup and get the button rect
+            button_rect = draw_popup()  # Draw the popup for rules and get the button rect
+            
+        if popup_2_open:
+            button_rect_2, timer_array = draw_popup_timer()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -331,7 +409,7 @@ def game_loop():
                     continue
 
 
-            if not popup_open:  # Don't process game events when popup is open
+            if not popup_open and not popup_2_open:  # Don't process game events when popup is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     click_position = handle_click()
                     print(click_position)
@@ -348,6 +426,10 @@ def game_loop():
                     elif click_position == "ChangeView Button":
                         print("Change View button clicked")
                         change_view = not change_view
+                        
+                    elif click_position == "Timer Button":
+                        print("Timer button clicked")
+                        popup_2_open = not popup_2_open
                         
                     elif click_position != "Info Button" and click_position is not None:
                         row, col = click_position
@@ -375,11 +457,34 @@ def game_loop():
                     elif event.key == pygame.K_p:  # Press 'P' to open the popup
                         popup_open = True
 
-            else:  # When popup is open
+            elif popup_open:  # When popup for rules is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     if button_rect.collidepoint(mouse_x, mouse_y):
                         popup_open = False  # Close the popup when button is clicked
+
+            else: #popup for timer is open
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    
+                    #1) here we search which time button does input_rect correspond to
+                    #2) store it in current timer
+                    #3) then close the popup
+                    
+                    if timer_array[0].collidepoint(mouse_x, mouse_y):
+                            timer = "inf"
+                    
+                    for i in range(1,11):
+                        if timer_array[i].collidepoint(mouse_x, mouse_y):
+                            timer = str(i)
+                    
+                    popup_2_open = False
+                            
+                    # else : user clicks on cancel button
+                    if button_rect_2.collidepoint(mouse_x, mouse_y):
+                        popup_2_open = False  
+                    
+                
 
         if not game_end:
             if game.check_win_dfs(PlayerColor.BLACK):
