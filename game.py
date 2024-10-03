@@ -78,9 +78,9 @@ class Game:
         # Get the top piece type at the current position
         top_piece = self.board[row][col].stack[self.board[row][col].height - 1] if self.board[row][col].height > 0 else None
 
-        # Check if the piece is the correct type (match player's color)
-        if top_piece is None or (player == PlayerColor.BLACK and top_piece.type not in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
-        (player == PlayerColor.WHITE and top_piece.type not in [PieceType.WHITE_LYING, PieceType.WHITE_STANDING]):
+        # Check if the piece is the correct type (only lying pieces count for win condition)
+        if top_piece is None or (player == PlayerColor.BLACK and top_piece.type != PieceType.BLACK_LYING) or \
+        (player == PlayerColor.WHITE and top_piece.type != PieceType.WHITE_LYING):
             return False
 
         # Check if the piece is on one of the four sides
@@ -121,8 +121,8 @@ class Game:
             for col in range(self.GRID_SIZE):
                 if self.board[row][col].height > 0:  # Check if there is any piece on this position
                     top_piece = self.board[row][col].stack[self.board[row][col].height - 1]
-                    if (player == PlayerColor.BLACK and top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
-                        (player == PlayerColor.WHITE and top_piece.type in [PieceType.WHITE_LYING, PieceType.WHITE_STANDING]):
+                    if (player == PlayerColor.BLACK and top_piece.type == PieceType.BLACK_LYING) or \
+                        (player == PlayerColor.WHITE and top_piece.type == PieceType.WHITE_LYING):
                         if not visited[row][col]:
                             side_flags = {'top': False, 'bottom': False, 'left': False, 'right': False}  # Reset for each path
                             if self.dfs(player, row, col, visited, side_flags):
