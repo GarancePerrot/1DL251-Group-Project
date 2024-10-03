@@ -13,7 +13,7 @@ class PlayerColor(Enum):
     BLACK = 0
     WHITE = 1
 
-MAX_STACK_HEIGHT = 4
+MAX_STACK_HEIGHT = 30
 class Stack():
     def __init__(self, height=0):
         self.stack = [Piece() for _ in range(MAX_STACK_HEIGHT)]
@@ -144,9 +144,8 @@ class Game:
 
     def is_valid_move(self, row, col):
         return 0 <= row < self.GRID_SIZE and 0 <= col < self.GRID_SIZE and \
-            self.board[row][col].height < self.MAX_STACK_HEIGHT and \
-            self.board[row][col].stack[self.board[row][col].height - 1].type not in [PieceType.BLACK_STANDING,
-                                                                                     PieceType.WHITE_STANDING]
+            self.board[row][col].height < MAX_STACK_HEIGHT and \
+            self.board[row][col].stack[self.board[row][col].height - 1].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
     
     def restart_game(self):
         self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board to Stack objects
@@ -154,4 +153,17 @@ class Game:
         self.black_pieces_left = 15  # Reset black pieces
         self.white_pieces_left = 15  # Reset white pieces
         print("Game reset successful")
+        
+    def get_hovered_cell(self, mouse_pos, grid_x_offset, cell_size):
+        x, y = mouse_pos
+        col = (x - grid_x_offset) // cell_size  # Evaluates the mouse column using the passed grid_x_offset and cell_size
+        row = (y - grid_x_offset) // cell_size  # Calculate the mouse row using the passed grid_x_offset and cell_size
+
+        # Check that the mouse is within range of the board
+        if 0 <= row < 4 and 0 <= col < 4:
+            return row, col
+        else:
+            return None
+
+    
   
