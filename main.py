@@ -22,6 +22,9 @@ LINE_WIDTH = 3  # Line width for the grid lines
 GRID_X_OFFSET = (WINDOW_WIDTH - GRID_WIDTH) // 2  # Center the grid horizontally
 GRID_Y_OFFSET = WINDOW_HEIGHT - GRID_HEIGHT - MARGIN_BOTTOM  # Place the grid near the bottom
 
+# for info
+BORDER_RADIUS = 5
+
 # Colors rgb value
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -42,17 +45,40 @@ game = Game()  # creating an object for Game class
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
 
+last_clicked_square = None  # Stores the last clicked square
+valid_moves = []  # Stores valid adjacent moves
+
+
 
 # Draw grid function
-def draw_grid():
+def draw_grid(place_mode):
     screen.fill(CREME)
 
-    # Draw grid lines                            X1                 Y1                   X2           Y2
+    # Draw grid lines and highlight clicked square
     for i in range(5):
         pygame.draw.line(screen, BLACK, ((i + 2) * CELL_SIZE, GRID_Y_OFFSET),
                          ((i + 2) * CELL_SIZE, WINDOW_HEIGHT - MARGIN_BOTTOM), LINE_WIDTH)  # vertical lines
         pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE),
                          (WINDOW_WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
+
+
+    # Highlight the clicked square if it exists
+    if last_clicked_square is not None and not place_mode:
+        row, col = last_clicked_square
+        x = GRID_X_OFFSET + col * CELL_SIZE
+        y = GRID_Y_OFFSET + row * CELL_SIZE
+
+        # Draw a rectangle to highlight the clicked square
+        highlight_color = (97, 74, 47)  # Less vibrant brown
+        pygame.draw.rect(screen, highlight_color, (x, y, CELL_SIZE, CELL_SIZE), 5)  # 5 pixel border
+
+    # Highlight valid adjacent moves
+    if not place_mode:
+        for row, col in valid_moves:
+            x = GRID_X_OFFSET + col * CELL_SIZE
+            y = GRID_Y_OFFSET + row * CELL_SIZE
+            pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
+
 
 
 
@@ -84,11 +110,11 @@ def draw_unused_pieces():
 
 def draw_info_button():
     global info_button_rect  # Use the global variable
-    info_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 50, 10, 100, 40)  # Create a rectangle for the button
-    pygame.draw.rect(screen, DARKER_CREME, info_button_rect)  # Draw the button
+    info_button_rect = pygame.Rect(WINDOW_WIDTH - 50, 10, 30, 30)  # Create a rectangle for the button
+    pygame.draw.rect(screen, DARKER_CREME, info_button_rect, border_radius=50)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, info_button_rect, 3)
-    info_text = small_font.render("Info", True, BLACK)  # Add text to the button
+    pygame.draw.rect(screen, BLACK, info_button_rect, 3, border_radius=50)
+    info_text = small_font.render("i", True, BLACK)  # Add text to the button
     screen.blit(info_text, (
     info_button_rect.centerx - info_text.get_width() // 2, info_button_rect.centery - info_text.get_height() // 2))
 
@@ -97,11 +123,11 @@ def draw_restart_button():
     global restart_button_rect  # Use the global variable
 
     # Align Restart button vertically below the Info button
-    restart_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 50, 60, 100, 40)  # Below Info button (same size and style)
+    restart_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 60, 10, 120, 45)  # Below Info button (same size and style)
 
     pygame.draw.rect(screen, DARKER_CREME, restart_button_rect)  # Same color as Info button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, restart_button_rect, 3)  # Same border style as Info button
+    pygame.draw.rect(screen, BLACK, restart_button_rect, 3, border_radius=BORDER_RADIUS)  # Same border style as Info button
     restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
     screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
 
@@ -128,10 +154,10 @@ def draw_end_message(winner):
 
 def draw_changeView_button():
     global changeView_button_rect  # Use the global variable
-    changeView_button_rect = pygame.Rect(WINDOW_WIDTH - 250, 100, 200, 50)  # Create a rectangle for the button
+    changeView_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 100, 60, 200, 50)  # Create a rectangle for the button
     pygame.draw.rect(screen, DARKER_CREME, changeView_button_rect)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3)
+    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3, border_radius=BORDER_RADIUS)
     changeView_text = small_font.render("Change View", True, BLACK)  # Add text to the button
     screen.blit(changeView_text, (
     changeView_button_rect.centerx - changeView_text.get_width() // 2, changeView_button_rect.centery - changeView_text.get_height() // 2))
@@ -235,7 +261,7 @@ def draw_hovered_stack(mouse_pos):
 def draw_turn_indicator():
     current_player = "Black" if game.get_current_player() == PlayerColor.BLACK else "White"
     turn_text = small_font.render(f"Turn: {current_player}", True, BLACK)
-    screen.blit(turn_text, (WINDOW_WIDTH // 2 - turn_text.get_width() // 2, WINDOW_HEIGHT // 5 - turn_text.get_height() // 2))
+    screen.blit(turn_text, (WINDOW_WIDTH // 2 - turn_text.get_width() // 2, (WINDOW_HEIGHT + 50) // 5 - turn_text.get_height() // 2))
 
 
 # Draw piece counts function
@@ -244,8 +270,8 @@ def draw_piece_counts():
     white_count = game.get_remaining_pieces(PlayerColor.WHITE)
     black_text = small_font.render(f"Black: {black_count} pcs", True, BLACK)
     white_text = small_font.render(f"White: {white_count} pcs", True, BLACK)
-    screen.blit(black_text, (10, 10))
-    screen.blit(white_text, (WINDOW_WIDTH - white_text.get_width() - 10, 10))
+    screen.blit(black_text, (10, 100))
+    screen.blit(white_text, (WINDOW_WIDTH - white_text.get_width() - 10, 100))
 
 
 # Draw mode indicator function
@@ -259,7 +285,7 @@ def draw_mode_indicator(place_mode):
 
 # Draw game function
 def draw_game(place_mode, change_view):
-    draw_grid()
+    draw_grid(place_mode)  # This now includes the selected square and valid moves
     draw_unused_pieces()
     draw_hovered_stack(game.mouse_pos)
     draw_info_button()
@@ -273,30 +299,51 @@ def draw_game(place_mode, change_view):
 
 
 
+
+def get_valid_moves(row, col):
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
+    moves = []
+
+    for dr, dc in directions:
+        new_row, new_col = row + dr, col + dc
+        if 0 <= new_row < game.GRID_SIZE and 0 <= new_col < game.GRID_SIZE:
+            if game.is_valid_move(new_row, new_col):  # Check if the move is valid
+                moves.append((new_row, new_col))
+
+    return moves
+
+
+def reset_visuals():
+    global last_clicked_square, valid_moves
+    last_clicked_square = None
+    valid_moves = []
+
 # Handle mouse click function
 def handle_click():
+    global last_clicked_square, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
-    if y >= GRID_Y_OFFSET:
+    if y >= GRID_Y_OFFSET and x >= GRID_X_OFFSET and y <= WINDOW_HEIGHT - MARGIN_BOTTOM and x <= WINDOW_WIDTH - GRID_X_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = (x - GRID_X_OFFSET) // CELL_SIZE
+        last_clicked_square = (row, col)  # Store the last clicked square
+        valid_moves = get_valid_moves(row, col)  # Get valid adjacent moves
         return row, col
 
-    # Check if the click is on the Info button
-    global info_button_rect  # Access the global variable
-    global changeView_button_rect
+    # Check if the click is on the Info, Change View, or Restart buttons
+    global info_button_rect, changeView_button_rect, restart_button_rect
     if info_button_rect and info_button_rect.collidepoint(x, y):
         return "Info Button"
     if changeView_button_rect and changeView_button_rect.collidepoint(x, y):
         return "ChangeView Button"
-    
-    # Check if the click is on the Restart button
-    global restart_button_rect  # Access the global variable
     if restart_button_rect and restart_button_rect.collidepoint(x, y):
         return "Restart Button"
 
     return None
+
+
+
 
 
 # Draw popup with rules
@@ -374,6 +421,8 @@ def game_loop():
     change_view = False
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    global valid_moves
+    global last_clicked_square
 
     while True:
         
@@ -430,6 +479,7 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
+                        reset_visuals()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
@@ -445,13 +495,14 @@ def game_loop():
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
+                                reset_visuals()
                         else:
                             # Move a piece
                             if selected_piece:
                                 from_row, from_col = selected_piece
                                 if game.move_piece(from_row, from_col, row, col):
                                     game.switch_turn()
-                                selected_piece = None
+                                    reset_visuals()
                             else:
                                 selected_piece = (row, col)
 
