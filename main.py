@@ -42,13 +42,14 @@ game = Game()  # creating an object for Game class
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
 
-last_clicked_square = None  # Stores the last clicked square
+selected_piece = None  # Stores the last clicked square
 valid_moves = []  # Stores valid adjacent moves
 
 
 
 # Draw grid function
 def draw_grid(place_mode):
+    global selected_piece, valid_moves
     screen.fill(CREME)
 
     # Draw grid lines and highlight clicked square
@@ -60,8 +61,8 @@ def draw_grid(place_mode):
 
 
     # Highlight the clicked square if it exists
-    if last_clicked_square is not None and not place_mode:
-        row, col = last_clicked_square
+    if selected_piece is not None and not place_mode:
+        row, col = selected_piece
         x = GRID_X_OFFSET + col * CELL_SIZE
         y = GRID_Y_OFFSET + row * CELL_SIZE
 
@@ -71,7 +72,9 @@ def draw_grid(place_mode):
 
     # Highlight valid adjacent moves
     if not place_mode:
+        print(valid_moves)
         for row, col in valid_moves:
+            print("försöker rita 2")
             x = GRID_X_OFFSET + col * CELL_SIZE
             y = GRID_Y_OFFSET + row * CELL_SIZE
             pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
@@ -293,9 +296,40 @@ def draw_game(place_mode, change_view):
     draw_changeView_button()
 
 
+""" if selected_piece:
+    from_row, from_col = selected_piece
+    if game.move_piece(from_row, from_col, row, col):
+        game.switch_turn()
+        reset_moves_preview_visuals()
+else:
+    selected_piece = (row, col) """
+
+def handle_move_piece(row, col):
+    global selected_piece, valid_moves
+
+    print("Handling move piece")
+    print("Selected piece:", selected_piece)
+    print("Valid moves:", valid_moves)
+
+    print("ROW, COL:", (row, col))
+
+    if selected_piece is None:
+        # Select the piece
+        selected_piece = (row, col)
+        valid_moves = get_valid_moves(row, col)
+    elif selected_piece == (row, col):
+        # Deselect the piece if the same square is clicked again
+        reset_moves_preview_visuals()
+    elif (row, col) in valid_moves:
+        # Move the piece if the destination is valid
+        from_row, from_col = selected_piece
+        if game.move_piece(from_row, from_col, row, col):
+            game.switch_turn()
+            reset_moves_preview_visuals()
 
 
 
+    
 
 def get_valid_moves(row, col):
     directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
@@ -310,22 +344,20 @@ def get_valid_moves(row, col):
     return moves
 
 
-def reset_visuals():
-    global last_clicked_square, valid_moves
-    last_clicked_square = None
+def reset_moves_preview_visuals():
+    global selected_piece, valid_moves
+    selected_piece = None
     valid_moves = []
 
 # Handle mouse click function
 def handle_click():
-    global last_clicked_square, valid_moves
+    global selected_piece, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
     if y >= GRID_Y_OFFSET and x >= GRID_X_OFFSET and y <= WINDOW_HEIGHT - MARGIN_BOTTOM and x <= WINDOW_WIDTH - GRID_X_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = (x - GRID_X_OFFSET) // CELL_SIZE
-        last_clicked_square = (row, col)  # Store the last clicked square
-        valid_moves = get_valid_moves(row, col)  # Get valid adjacent moves
         return row, col
 
     # Check if the click is on the Info, Change View, or Restart buttons
@@ -338,7 +370,6 @@ def handle_click():
         return "Restart Button"
 
     return None
-
 
 
 
@@ -413,13 +444,12 @@ def wrap_text(text, font, max_width):
 # Game loop function
 def game_loop():
     place_mode = True
-    selected_piece = None
     popup_open = False  # Popup state
-    change_view = False
+    change_view = True
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    global selected_piece
     global valid_moves
-    global last_clicked_square
 
     while True:
         
@@ -467,7 +497,6 @@ def game_loop():
             if not popup_open:  # Don't process game events when popup is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     click_position = handle_click()
-                    print(click_position)
 
                     if click_position == "Info Button":
                         print("Info button clicked")
@@ -476,14 +505,14 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
-                        reset_visuals()
+                        reset_moves_preview_visuals()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
                         print("Change View button clicked")
                         change_view = not change_view
                         
-                    elif click_position != "Info Button" and click_position is not None:
+                    elif click_position is not None:
                         row, col = click_position
                         current_player = game.get_current_player()
 
@@ -492,16 +521,9 @@ def game_loop():
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
-                                reset_visuals()
+                                reset_moves_preview_visuals()
                         else:
-                            # Move a piece
-                            if selected_piece:
-                                from_row, from_col = selected_piece
-                                if game.move_piece(from_row, from_col, row, col):
-                                    game.switch_turn()
-                                    reset_visuals()
-                            else:
-                                selected_piece = (row, col)
+                            handle_move_piece(row, col)
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
