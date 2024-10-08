@@ -198,6 +198,22 @@ def draw_mode_indicator(place_mode):
     screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
 
 
+# TIMER : 
+# - User clicks on the "Timer" button (by default set to "inf" = no time limit)
+# - A popup displays with choices of inf, 1, 2 , ... , 10 min and user clicks on one
+# - The timer value is updated on the button
+# - The round begins and the time left for the round is shown under the Timer button (e.g "Time left: 54 s")
+# - When time left reaches 0, the current player loses 
+#           -> (possible improvements : give option of what happens e.g penalty, random move etc...)
+# - The time left is reset to the timer value when :
+#           -> A turn changes (other player starts playing)
+#           -> Player clicks on "Restart" button
+#           -> Player sets a NEW value to the Timer value in the Timer popup
+# - The time left is UNCHANGED when:
+#           -> Player clicks on "Info" and exits the info popup
+#           -> Player clicks on "Timer" and does NOT choose a new value for timer (clicks on "Cancel" button)
+
+
 #helper for time left
 def seconds_to_minutes_seconds(seconds):
   minutes = int(seconds) // 60
