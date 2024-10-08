@@ -166,20 +166,20 @@ def draw_changeView_button():
 def draw_pieces(change_view):
     for row in range(4):
         for col in range(4):
-            stack = game.board[row][col]
+            stack = game.board[row][col].stack
 
-            if stack.height != 0:
+            if len(stack) != 0:
                 if change_view:
                     # Side view logic: only show the top 5 pieces
-                    game.max_display_pieces = min(stack.height, 5)
+                    game.max_display_pieces = min(len(stack), 5)
                     x = GRID_X_OFFSET + col * CELL_SIZE + 15
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE - 15
 
                     # If there are more than 5 pieces, only show the top 5
-                    start_index = max(0, stack.height - 5)
+                    start_index = max(0, len(stack) - 5)
 
                     # Draw the top 5 pieces starting from the latest one
-                    for i in range(start_index, stack.height):
+                    for i in range(start_index, len(stack)):
                         piece = stack.stack[i]
                         color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
@@ -195,8 +195,8 @@ def draw_pieces(change_view):
                         y -= CELL_SIZE // 2 - 40  # Move upward for the next piece
 
                     # If there are more than 5 pieces, show "+n" for the remaining pieces
-                    if stack.height > 5:
-                        remaining_pieces = stack.height - 5
+                    if len(stack) > 5:
+                        remaining_pieces = len(stack) - 5
                         text = small_font.render(f"+{remaining_pieces}", True, RED)
                         screen.blit(text, (x, GRID_Y_OFFSET + (row + 1) * CELL_SIZE - text.get_height()))
 
@@ -206,15 +206,15 @@ def draw_pieces(change_view):
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # Y position
 
                     # Draw the top piece
-                    piece = stack.stack[stack.height - 1]
+                    piece = stack.stack[len(stack) - 1]
                     color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                     # Draw a circular piece for the top-down view
                     pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
 
                     # If there is more than one piece, show the stack height
-                    if stack.height > 1:
-                        height_text = small_font.render(str(stack.height), True, RED)
+                    if len(stack) > 1:
+                        height_text = small_font.render(str(len(stack)), True, RED)
                         screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
 
 def draw_hovered_stack(mouse_pos):
@@ -222,9 +222,9 @@ def draw_hovered_stack(mouse_pos):
 
     if hovered_cell:
         row, col = hovered_cell
-        stack = game.board[row][col]
+        stack = game.board[row][col].stack
 
-        if stack.height > 0:
+        if len(stack) > 0:
             # Display the stack on the right side of the screen, aligned with the unused pieces on the left
             stack_x = WINDOW_WIDTH - CELL_SIZE - 50  # Leave a 50-pixel margin on the right side
             stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 5 # Start stacking from the bottom of the board, aligned with the left side
@@ -235,8 +235,8 @@ def draw_hovered_stack(mouse_pos):
             piece_margin = 0  # Set the margin between each piece
 
             # Display pieces in stack order, from bottom to top
-            for i in range(stack.height):
-                piece = stack.stack[i]
+            for i in range(len(stack)):
+                piece = stack[i]
                 color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                 # Display lying pieces

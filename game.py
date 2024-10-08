@@ -15,9 +15,8 @@ class PlayerColor(Enum):
 
 MAX_STACK_HEIGHT = 30
 class Stack():
-    def __init__(self, height=0):
-        self.stack = [Piece() for _ in range(MAX_STACK_HEIGHT)]
-        self.height = height
+    def __init__(self):
+        self.stack = []
 
 
 class Piece:
@@ -44,8 +43,7 @@ class Game:
                 PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING
 
         stack = self.board[row][col]
-        stack.stack[stack.height] = Piece(piece_type)
-        stack.height += 1
+        stack.stack.append(Piece(piece_type))
 
         if color == PlayerColor.BLACK:
             self.black_pieces_left -= 1
@@ -59,15 +57,13 @@ class Game:
             return False
 
         # Move the top piece from the source stack to the destination stack
-        source_stack = self.board[from_row][from_col]
-        dest_stack = self.board[to_row][to_col]
+        source_stack = self.board[from_row][from_col].stack
+        dest_stack = self.board[to_row][to_col].stack
 
         # Check if destination stack has space
-        if dest_stack.height < self.MAX_STACK_HEIGHT:
-            dest_stack.stack[dest_stack.height] = source_stack.stack[source_stack.height - 1]
-            dest_stack.height += 1
-            source_stack.height -= 1
-            source_stack.stack[source_stack.height] = Piece()  # Reset the slot after moving
+        if len(dest_stack) < self.MAX_STACK_HEIGHT:
+            dest_stack.append(source_stack[-1])
+            source_stack.pop(-1)
 
         return True
 
@@ -76,7 +72,7 @@ class Game:
         visited[row][col] = True
 
         # Get the top piece type at the current position
-        top_piece = self.board[row][col].stack[self.board[row][col].height - 1] if self.board[row][col].height > 0 else None
+        top_piece = self.board[row][col][-1] if len(self.board[row][col].stack) > 0 else None
 
         # Check if the piece is the correct type (match player's color)
         if top_piece is None or (player == PlayerColor.BLACK and top_piece.type not in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
@@ -119,8 +115,8 @@ class Game:
         # Traverse the board to find all positions for current player
         for row in range(self.GRID_SIZE):
             for col in range(self.GRID_SIZE):
-                if self.board[row][col].height > 0:  # Check if there is any piece on this position
-                    top_piece = self.board[row][col].stack[self.board[row][col].height - 1]
+                if len(self.board[row][col].stack) > 0:  # Check if there is any piece on this position
+                    top_piece = self.board[row][col][-1]
                     if (player == PlayerColor.BLACK and top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
                         (player == PlayerColor.WHITE and top_piece.type in [PieceType.WHITE_LYING, PieceType.WHITE_STANDING]):
                         if not visited[row][col]:
@@ -144,8 +140,8 @@ class Game:
 
     def is_valid_move(self, row, col):
         return 0 <= row < self.GRID_SIZE and 0 <= col < self.GRID_SIZE and \
-            self.board[row][col].height < MAX_STACK_HEIGHT and \
-            self.board[row][col].stack[self.board[row][col].height - 1].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
+            len(self.board[row][col].stack) < MAX_STACK_HEIGHT and \
+            self.board[row][col][-1].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
     
     def restart_game(self):
         self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board to Stack objects
