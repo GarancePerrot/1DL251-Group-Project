@@ -1,6 +1,7 @@
 import pygame
 import sys
-import time
+from time import time
+import math
 from game import Game, PlayerColor, PieceType  # importing classes from game file
 
 # Initialize pygame
@@ -81,7 +82,11 @@ def draw_timer_button(timer):
     pygame.draw.rect(screen, DARKER_CREME, Timer_button_rect)  # Draw the button
     # Draw border rect
     pygame.draw.rect(screen, BLACK, Timer_button_rect, 3)
-    Timer_text = small_font.render("Timer: "+timer+" (min)", True, BLACK)  # Add text to the button
+    if timer == "inf":
+        string = "Timer: "+timer
+    else: 
+        string = "Timer: "+timer+" min"
+    Timer_text = small_font.render(string, True, BLACK)  # Add text to the button
     screen.blit(Timer_text, (
     Timer_button_rect.centerx - Timer_text.get_width() // 2, Timer_button_rect.centery - Timer_text.get_height() // 2))
 
@@ -192,12 +197,33 @@ def draw_mode_indicator(place_mode):
     mode_text = small_font.render("Mode: Place" if place_mode else "Mode: Move", True, BLACK)
     screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
 
-def draw_mode_indicator(place_mode):
-    mode_text = small_font.render("Mode: Place" if place_mode else "Mode: Move", True, BLACK)
-    screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
+
+#helper for time left
+def seconds_to_minutes_seconds(seconds):
+  minutes = int(seconds) // 60
+  remaining_seconds = int(seconds) % 60
+  return str(minutes), str(remaining_seconds)
+
+#draw indicator for time left for the round 
+def draw_time_left_indicator(time_left):
+    if time_left == "inf" or time_left == "0":
+        string = "Time left: "+ time_left
+    else : 
+        min, sec = seconds_to_minutes_seconds(time_left)
+        if min == "0":
+            string = "Time left: "+sec+" s"
+        elif sec == "0":
+            string = "Time left: "+ min +" min"
+        else:
+            string = "Time left: "+  min + " min "+sec+" s"
+    font = pygame.font.Font(None, 30) 
+    mode_text = font.render(string, True, BLACK)
+    screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2 - 250 , HEIGHT // 5 + 35))
+    
+    
 
 # Draw game function
-def draw_game(place_mode,change_view, timer):
+def draw_game(place_mode,change_view, timer, time_left):
     draw_grid()
     draw_info_button()
     draw_timer_button(timer)
@@ -206,6 +232,7 @@ def draw_game(place_mode,change_view, timer):
     draw_piece_counts()
     draw_mode_indicator(place_mode)
     draw_changeView_button()
+    draw_time_left_indicator(time_left)
 
 
 # Handle mouse click function
@@ -373,13 +400,45 @@ def game_loop():
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
     timer = "inf" #infinity  = no timer by default
+    
+    start = time() 
+    flag = 0  
 
     while True:
-        draw_game(place_mode,change_view, timer)
+
+        #setting a timer for the round :
+                    
+        if timer == "inf":
+            duration = math.inf
+        else : 
+            duration = float(timer) * 60 #convert in seconds
+        
+        
+        #print("time() - start : " , time()- start, " < ? , duration : ", duration)
+        if time() - start >= duration: #and time exceeded
+            #current player loses :
+            current_player = game.current_player
+            print(current_player)
+            if current_player == PlayerColor.BLACK:
+                winner = "White"
+            else:
+                winner = "Black"
+            game_end = True
+            time_left = "0"
+            
+        #simplify time left for the round to show user
+        if timer == "inf":
+            time_left = "inf"
+        else:
+            time_left = str(int(duration - time()+start))
+            
+                
+        draw_game(place_mode,change_view, timer, time_left)
         draw_restart_button()
         
         if game_end:
             draw_end_message(winner)  # Displays a prompt at the end of the game
+            time_left = "0"
 
 
         if popup_open:
@@ -402,10 +461,13 @@ def game_loop():
                     game.restart_game()  
                     game_end = False  # Reset the game end state
                     winner = None  # Reset winner
+                    time_left = "0"
+                    start = time()
                     continue  # Restart the game loop
 
                 # If the game is over, the placement or movement of pieces is no longer handled
                 if game_end:
+                    time_left = "0"
                     continue
 
 
@@ -434,22 +496,27 @@ def game_loop():
                     elif click_position != "Info Button" and click_position is not None:
                         row, col = click_position
                         current_player = game.get_current_player()
-
+                        
+                
+                        #current player makes an action : 
                         if place_mode:
                             # Place a piece
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
+                                start = time()  #restart counter
                         else:
                             # Move a piece
                             if selected_piece:
                                 from_row, from_col = selected_piece
                                 if game.move_piece(from_row, from_col, row, col):
                                     game.switch_turn()
+                                    start = time() #restart counter
                                 selected_piece = None
                             else:
                                 selected_piece = (row, col)
-
+                    
+                        
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         place_mode = not place_mode
@@ -462,6 +529,7 @@ def game_loop():
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     if button_rect.collidepoint(mouse_x, mouse_y):
                         popup_open = False  # Close the popup when button is clicked
+                
 
             else: #popup for timer is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -473,16 +541,21 @@ def game_loop():
                     
                     if timer_array[0].collidepoint(mouse_x, mouse_y):
                             timer = "inf"
+                            start = time() #restart counter after closing popup
                     
                     for i in range(1,11):
                         if timer_array[i].collidepoint(mouse_x, mouse_y):
                             timer = str(i)
+                            start = time() #restart counter after closing popup
                     
                     popup_2_open = False
+                    
                             
                     # else : user clicks on cancel button
                     if button_rect_2.collidepoint(mouse_x, mouse_y):
                         popup_2_open = False  
+                        
+                
                     
                 
 
@@ -490,11 +563,14 @@ def game_loop():
             if game.check_win_dfs(PlayerColor.BLACK):
                 winner = "Black"
                 game_end = True
+                time_left = "0"
             elif game.check_win_dfs(PlayerColor.WHITE):
                 winner = "White"
                 game_end = True
+                time_left = "0"
             elif game.is_draw():
                 game_end = True
+                time_left = "0"
 
         pygame.display.update()
 
