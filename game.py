@@ -53,8 +53,10 @@ class Game:
         return True
 
     def move_piece(self, from_row, from_col, to_row, to_col):
-        if not self.is_valid_move(to_row, to_col) or self.board[from_row][from_col].stack[0].type == PieceType.EMPTY:
-            return False
+        stack = self.board[from_row][from_col].stack
+        if len(stack) > 0:
+            if not self.is_valid_move(to_row, to_col) or stack[0].type == PieceType.EMPTY:
+                return False
 
         # Move the top piece from the source stack to the destination stack
         source_stack = self.board[from_row][from_col].stack
@@ -72,7 +74,7 @@ class Game:
         visited[row][col] = True
 
         # Get the top piece type at the current position
-        top_piece = self.board[row][col][-1] if len(self.board[row][col].stack) > 0 else None
+        top_piece = self.board[row][col].stack[-1] if len(self.board[row][col].stack) > 0 else None
 
         # Check if the piece is the correct type (match player's color)
         if top_piece is None or (player == PlayerColor.BLACK and top_piece.type not in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
@@ -116,7 +118,7 @@ class Game:
         for row in range(self.GRID_SIZE):
             for col in range(self.GRID_SIZE):
                 if len(self.board[row][col].stack) > 0:  # Check if there is any piece on this position
-                    top_piece = self.board[row][col][-1]
+                    top_piece = self.board[row][col].stack[-1]
                     if (player == PlayerColor.BLACK and top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
                         (player == PlayerColor.WHITE and top_piece.type in [PieceType.WHITE_LYING, PieceType.WHITE_STANDING]):
                         if not visited[row][col]:
@@ -139,9 +141,15 @@ class Game:
         return self.black_pieces_left if color == PlayerColor.BLACK else self.white_pieces_left
 
     def is_valid_move(self, row, col):
-        return 0 <= row < self.GRID_SIZE and 0 <= col < self.GRID_SIZE and \
-            len(self.board[row][col].stack) < MAX_STACK_HEIGHT and \
-            self.board[row][col][-1].type not in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]
+        # Check if the coordinates are within bounds and if the stack height is less than MAX_STACK_HEIGHT
+        if 0 <= row < self.GRID_SIZE and 0 <= col < self.GRID_SIZE and len(self.board[row][col].stack) < self.MAX_STACK_HEIGHT:
+            # Check if there is any piece in the stack and if it's not a standing piece
+            if len(self.board[row][col].stack) > 0:
+                top_piece = self.board[row][col].stack[-1].type
+                if top_piece in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]:
+                    return False
+            return True
+        return False
     
     def restart_game(self):
         self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board to Stack objects

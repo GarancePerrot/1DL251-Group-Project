@@ -180,7 +180,7 @@ def draw_pieces(change_view):
 
                     # Draw the top 5 pieces starting from the latest one
                     for i in range(start_index, len(stack)):
-                        piece = stack.stack[i]
+                        piece = stack[i]
                         color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                         # Draw lying pieces
