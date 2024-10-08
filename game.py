@@ -65,7 +65,7 @@ class Game:
         # Check if destination stack has space
         if len(dest_stack) < self.MAX_STACK_HEIGHT:
             dest_stack.append(source_stack[-1])
-            source_stack.pop(-1)
+            source_stack.pop()
 
         return True
 
