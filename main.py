@@ -205,7 +205,7 @@ def draw_pieces(change_view):
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # Y position
 
                     # Draw the top piece
-                    piece = stack.stack[len(stack) - 1]
+                    piece = stack[len(stack) - 1]
                     color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                     # Draw a circular piece for the top-down view
