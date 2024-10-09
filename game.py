@@ -96,9 +96,9 @@ class Game:
         # Get the top piece type at the current position
         top_piece = self.board[row][col].stack[-1] if len(self.board[row][col].stack) > 0 else None
 
-        # Check if the piece is the correct type (match player's color)
-        if top_piece is None or (player == PlayerColor.BLACK and top_piece.type not in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]) or \
-        (player == PlayerColor.WHITE and top_piece.type not in [PieceType.WHITE_LYING, PieceType.WHITE_STANDING]):
+        # Check if the piece is the correct type (only lying pieces count for win condition)
+        if top_piece is None or (player == PlayerColor.BLACK and top_piece.type != PieceType.BLACK_LYING) or \
+        (player == PlayerColor.WHITE and top_piece.type != PieceType.WHITE_LYING):
             return False
 
         # Check if the piece is on one of the four sides
