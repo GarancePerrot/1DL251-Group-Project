@@ -7,13 +7,24 @@ from game import Game, PlayerColor, PieceType  # importing classes from game fil
 # Initialize pygame
 pygame.init()  # init for pygame package
 
-# Set the dimensions of the game window
-WIDTH, HEIGHT = 800, 600
-MARGIN_BOTTOM = 20
-LINE_WIDTH = 3
-CELL_SIZE = WIDTH // 8  # cell size 100
-GRID_Y_OFFSET = HEIGHT - CELL_SIZE * 4 - MARGIN_BOTTOM  # place grid at the bottom
-GRID_X_OFFSET = CELL_SIZE * 2
+WINDOW_WIDTH, WINDOW_HEIGHT = 800, 600  # The overall dimensions of the game window
+GRID_ROWS, GRID_COLS = 4, 4  # 4x4 grid on the game board
+
+# Calculate cell size based on window width
+CELL_SIZE = WINDOW_WIDTH // (GRID_COLS + 4)  # Each cell size, leaves margin on both sides
+GRID_WIDTH = CELL_SIZE * GRID_COLS  # Total width of the grid (4 cells)
+GRID_HEIGHT = CELL_SIZE * GRID_ROWS  # Total height of the grid (4 cells)
+
+# Margins and offsets
+MARGIN_BOTTOM = 20  # Margin between the bottom of the grid and the window bottom
+LINE_WIDTH = 3  # Line width for the grid lines
+
+# Offsets to center the grid horizontally and place it near the bottom
+GRID_X_OFFSET = (WINDOW_WIDTH - GRID_WIDTH) // 2  # Center the grid horizontally
+GRID_Y_OFFSET = WINDOW_HEIGHT - GRID_HEIGHT - MARGIN_BOTTOM  # Place the grid near the bottom
+
+# for info
+BORDER_RADIUS = 5
 
 # Colors rgb value
 WHITE = (255, 255, 255)
@@ -23,9 +34,10 @@ BLUE = (0, 0, 255)
 CREME = (249, 228, 188)
 DARKER_CREME = (220, 190, 140)
 GREEN = (0, 255, 0)
+GRAY = (80, 80, 80)
 
 # Set up display
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("4-in-a-Row Stacking Game")
 
 # Initialize game
@@ -35,17 +47,37 @@ game = Game()  # creating an object for Game class
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
 
+last_clicked_square = None  # Stores the last clicked square
+valid_moves = []  # Stores valid adjacent moves
+
 
 # Draw grid function
-def draw_grid():
+def draw_grid(place_mode):
     screen.fill(CREME)
 
-    # Draw grid lines                            X1                 Y1                   X2           Y2
+    # Draw grid lines and highlight clicked square
     for i in range(5):
         pygame.draw.line(screen, BLACK, ((i + 2) * CELL_SIZE, GRID_Y_OFFSET),
-                         ((i + 2) * CELL_SIZE, HEIGHT - MARGIN_BOTTOM), LINE_WIDTH)  # vertical lines
+                         ((i + 2) * CELL_SIZE, WINDOW_HEIGHT - MARGIN_BOTTOM), LINE_WIDTH)  # vertical lines
         pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE),
-                         (WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
+                         (WINDOW_WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
+        
+        # Highlight the clicked square if it exists
+    if last_clicked_square is not None and not place_mode:
+        row, col = last_clicked_square
+        x = GRID_X_OFFSET + col * CELL_SIZE
+        y = GRID_Y_OFFSET + row * CELL_SIZE
+
+        # Draw a rectangle to highlight the clicked square
+        highlight_color = (97, 74, 47)  # Less vibrant brown
+        pygame.draw.rect(screen, highlight_color, (x, y, CELL_SIZE, CELL_SIZE), 5)  # 5 pixel border
+
+    # Highlight valid adjacent moves
+    if not place_mode:
+        for row, col in valid_moves:
+            x = GRID_X_OFFSET + col * CELL_SIZE
+            y = GRID_Y_OFFSET + row * CELL_SIZE
+            pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
 
 
 # Info button
@@ -53,42 +85,68 @@ info_button_rect = None  # Global variable
 changeView_button_rect = None
 Timer_button_rect = None
 
+
+def draw_unused_pieces():
+    # Set the initial position for the unused pieces stack
+    stack_x = GRID_X_OFFSET - CELL_SIZE - 20  # Place on the left of the board, leaving a bit of space
+    stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 5 # Start stacking from the bottom of the board
+    piece_height = CELL_SIZE // 2 - 40  # Ensure each piece has the appropriate height (adjusted)
+    piece_width = CELL_SIZE // 2 + 20  # Ensure the width matches the side view of the pieces in the grid
+    piece_margin = 0  # Set spacing between each piece
+
+    black_unused_count = game.get_remaining_pieces(PlayerColor.BLACK)
+    white_unused_count = game.get_remaining_pieces(PlayerColor.WHITE)
+
+    # There are 30 pieces in total, alternating between black and white
+    for i in range(30):
+        if i < black_unused_count + white_unused_count:
+            # Alternate between black and white pieces
+            color = WHITE if i % 2 == 0 else BLACK
+            # Draw the actual piece with the same width as the side-view pieces in the grid
+            pygame.draw.rect(screen, color, (stack_x, stack_y, piece_width, piece_height))
+            stack_y -= piece_height + piece_margin  # Move upward to place the next piece
+
+
+
+
 def draw_info_button():
     global info_button_rect  # Use the global variable
-    info_button_rect = pygame.Rect(WIDTH // 2 - 50, 10, 100, 40)  # Create a rectangle for the button
-    pygame.draw.rect(screen, DARKER_CREME, info_button_rect)  # Draw the button
+    info_button_rect = pygame.Rect(WINDOW_WIDTH - 50, 10, 30, 30)  # Create a rectangle for the button
+    pygame.draw.rect(screen, DARKER_CREME, info_button_rect, border_radius=50)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, info_button_rect, 3)
-    info_text = small_font.render("Info", True, BLACK)  # Add text to the button
+    pygame.draw.rect(screen, BLACK, info_button_rect, 3, border_radius=50)
+    info_text = small_font.render("i", True, BLACK)  # Add text to the button
     screen.blit(info_text, (
     info_button_rect.centerx - info_text.get_width() // 2, info_button_rect.centery - info_text.get_height() // 2))
+
 
 def draw_restart_button():
     global restart_button_rect  # Use the global variable
 
     # Align Restart button vertically below the Info button
-    restart_button_rect = pygame.Rect(WIDTH // 2 - 50, 60, 100, 40)  # Below Info button (same size and style)
+    restart_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 60, 10, 120, 45) # Below Info button (same size and style)
 
     pygame.draw.rect(screen, DARKER_CREME, restart_button_rect)  # Same color as Info button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, restart_button_rect, 3)  # Same border style as Info button
+    pygame.draw.rect(screen, BLACK, restart_button_rect, 3, border_radius=BORDER_RADIUS)  
     restart_text = small_font.render("Restart", True, BLACK)  # Same text color as Info button
     screen.blit(restart_text, (restart_button_rect.centerx - restart_text.get_width() // 2, restart_button_rect.centery - restart_text.get_height() // 2))
     
 def draw_timer_button(timer):
     global Timer_button_rect # Use the global variable
-    Timer_button_rect = pygame.Rect(50, 100, 220, 50) 
+    Timer_button_rect = pygame.Rect(10, 10, 140, 45) 
     # changeView_button_rect = pygame.Rect(WIDTH - 250, 100, 200, 50) 
     pygame.draw.rect(screen, DARKER_CREME, Timer_button_rect)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, Timer_button_rect, 3)
+    pygame.draw.rect(screen, BLACK, Timer_button_rect, 3, border_radius=BORDER_RADIUS)
     if timer == "inf":
         string = "Timer: "+timer
     else: 
-        string = "Timer: "+timer+" min"
+        string = "Timer: "+timer+"\'"
     Timer_text = small_font.render(string, True, BLACK)  # Add text to the button
     screen.blit(Timer_text, (
     Timer_button_rect.centerx - Timer_text.get_width() // 2, Timer_button_rect.centery - Timer_text.get_height() // 2))
+
 
 
 def draw_end_message(winner):
@@ -113,10 +171,10 @@ def draw_end_message(winner):
 
 def draw_changeView_button():
     global changeView_button_rect  # Use the global variable
-    changeView_button_rect = pygame.Rect(WIDTH - 250, 100, 200, 50)  # Create a rectangle for the button
+    changeView_button_rect = pygame.Rect(WINDOW_WIDTH // 2 - 100, 60, 200, 50)  # Create a rectangle for the button
     pygame.draw.rect(screen, DARKER_CREME, changeView_button_rect)  # Draw the button
     # Draw border rect
-    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3)
+    pygame.draw.rect(screen, BLACK, changeView_button_rect, 3, border_radius=BORDER_RADIUS)
     changeView_text = small_font.render("Change View", True, BLACK)  # Add text to the button
     screen.blit(changeView_text, (
     changeView_button_rect.centerx - changeView_text.get_width() // 2, changeView_button_rect.centery - changeView_text.get_height() // 2))
@@ -125,61 +183,106 @@ def draw_changeView_button():
 def draw_pieces(change_view):
     for row in range(4):
         for col in range(4):
-            # piece = game.board[row][col]
-            # if piece.type != PieceType.EMPTY:
-            #     color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
-            #     x = GRID_X_OFFSET + col * CELL_SIZE + CELL_SIZE // 2  # middle of x axis
-            #     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # middle of y axis
-            #     if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
-            #         pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
-            #     else:
-            #         pygame.draw.rect(screen, color,
-            #                          (x - CELL_SIZE // 4, y - CELL_SIZE // 4, CELL_SIZE // 2, CELL_SIZE // 2))
-            #     # Draw stack height
-            #     if piece.height > 1:
-            #         height_text = small_font.render(str(piece.height), True, RED if color == BLACK else BLUE)
-            #         screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
             stack = game.board[row][col]
+            
             if stack.height != 0:
                 if change_view:
+                    # Side view logic: only show the top 5 pieces
+                    game.max_display_pieces = min(stack.height, 5)
                     x = GRID_X_OFFSET + col * CELL_SIZE + 15
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE - 15
-                    for i,piece in enumerate(stack.stack):
-                        if stack.stack[i].type == PieceType.EMPTY:
-                            continue
-                        color = BLACK if stack.stack[i].type in [PieceType.BLACK_LYING,
-                                PieceType.BLACK_STANDING] else WHITE
-                        type = stack.stack[i].type
-                        if type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
-                            pygame.draw.rect(screen, color,
-                                             (x, y, CELL_SIZE // 2 + 20, CELL_SIZE // 2 - 40))
-                            y -= CELL_SIZE // 2 - 40 + 5
-                        else:
-                            pygame.draw.rect(screen, color,
-                                             (x +25, y - 20, CELL_SIZE // 2 - 30, CELL_SIZE // 2 - 20))
-                            y -= CELL_SIZE // 2 - 40 + 5
+
+
+                    # If there are more than 5 pieces, only show the top 5
+                    start_index = max(0, stack.height - 5)
+
+                    # Draw the top 5 pieces starting from the latest one
+                    for i in range(start_index, stack.height):
+                        piece = stack.stack[i]
+                        color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
+
+                        # Draw lying pieces
+                        if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
+                            pygame.draw.rect(screen, color, (x, y, CELL_SIZE // 2 + 20, CELL_SIZE // 2 - 40))
+                        else:  # Draw standing pieces with width 1/3 of lying pieces, height is the same
+                            standing_width = (CELL_SIZE // 2 + 20) // 3  # Width is 1/3 of lying piece
+                            pygame.draw.rect(screen, color, (
+                                x + ((CELL_SIZE // 2 + 20) - standing_width) // 2,  # Center the standing piece
+                                y, standing_width, CELL_SIZE // 2 - 40))  # Keep the same height
+
+                        y -= CELL_SIZE // 2 - 40  # Move upward for the next piece
+
+                    # If there are more than 5 pieces, show "+n" for the remaining pieces
+                    if stack.height > 5:
+                        remaining_pieces = stack.height - 5
+                        text = small_font.render(f"+{remaining_pieces}", True, RED)
+                        screen.blit(text, (x, GRID_Y_OFFSET + (row + 1) * CELL_SIZE - text.get_height()))
+
                 else:
-                    color = BLACK if stack.stack[stack.height - 1].type in [PieceType.BLACK_LYING,
-                                                                            PieceType.BLACK_STANDING] else WHITE
-                    x = GRID_X_OFFSET + col * CELL_SIZE + CELL_SIZE // 2  # middle of x axis
-                    y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # middle of y axis
-                    if stack.stack[stack.height - 1].type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
-                            pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
-                    else:
-                        pygame.draw.rect(screen, color,
-                                         (x - CELL_SIZE // 4, y - CELL_SIZE // 4, CELL_SIZE // 2, CELL_SIZE // 2))
-                    # Draw stack height
+
+                    # Top-down view logic: draw circular pieces and show stack height
+                    x = GRID_X_OFFSET + col * CELL_SIZE + CELL_SIZE // 2  # X position
+                    y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # Y position
+
+                    # Draw the top piece
+                    piece = stack.stack[stack.height - 1]
+                    color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
+
+                    # Draw a circular piece for the top-down view
+                    pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
+
+                    # If there is more than one piece, show the stack height
                     if stack.height > 1:
-                        height_text = small_font.render(str(stack.height), True, RED if color == BLACK else BLUE)
-                        screen.blit(height_text,
-                                    (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
+                        height_text = small_font.render(str(stack.height), True, RED)
+                        screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
+
+
+def draw_hovered_stack(mouse_pos):
+    hovered_cell = game.get_hovered_cell(mouse_pos, GRID_X_OFFSET, CELL_SIZE)
+
+    if hovered_cell:
+        row, col = hovered_cell
+        stack = game.board[row][col]
+
+        if stack.height > 0:
+            # Display the stack on the right side of the screen, aligned with the unused pieces on the left
+            stack_x = WINDOW_WIDTH - CELL_SIZE - 50  # Leave a 50-pixel margin on the right side
+            stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 5 # Start stacking from the bottom of the board, aligned with the left side
+
+            # Ensure the piece size is consistent with the unused pieces
+            piece_height = CELL_SIZE // 2 - 40  # Keep the height consistent with the left side
+            piece_width = CELL_SIZE // 2 + 20   # Ensure the width matches the lying pieces in the grid
+            piece_margin = 0  # Set the margin between each piece
+
+            # Display pieces in stack order, from bottom to top
+            for i in range(stack.height):
+                piece = stack.stack[i]
+                color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
+
+                # Display lying pieces
+                if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
+                    pygame.draw.rect(screen, color, (stack_x, stack_y, piece_width, piece_height))
+                else:  # Handle standing pieces
+                    # Standing pieces have 1/3 of the width of lying pieces, with the same height
+                    standing_width = piece_width // 3  # Standing piece width is 1/3 of lying piece
+                    standing_height = piece_height  # Standing piece height is the same as lying piece
+
+                    # Center the standing piece horizontally and draw it
+                    pygame.draw.rect(screen, color, 
+                                     (stack_x + (piece_width - standing_width) // 2,  # Center horizontally
+                                      stack_y,  # Place it at the correct Y-axis position
+                                      standing_width, 
+                                      standing_height))
+
+                stack_y -= piece_height + piece_margin  # Move upward and leave space between pieces
+
 
 
 # Draw turn indicator function
 def draw_turn_indicator():
     current_player = "Black" if game.get_current_player() == PlayerColor.BLACK else "White"
     turn_text = small_font.render(f"Turn: {current_player}", True, BLACK)
-    screen.blit(turn_text, (WIDTH // 2 - turn_text.get_width() // 2, HEIGHT // 5 - turn_text.get_height() // 2))
+    screen.blit(turn_text, (WINDOW_WIDTH // 2 - turn_text.get_width() // 2, (WINDOW_HEIGHT + 50) // 5 - turn_text.get_height() // 2))
 
 
 # Draw piece counts function
@@ -188,14 +291,14 @@ def draw_piece_counts():
     white_count = game.get_remaining_pieces(PlayerColor.WHITE)
     black_text = small_font.render(f"Black: {black_count} pcs", True, BLACK)
     white_text = small_font.render(f"White: {white_count} pcs", True, BLACK)
-    screen.blit(black_text, (10, 10))
-    screen.blit(white_text, (WIDTH - white_text.get_width() - 10, 10))
+    screen.blit(black_text, (10, 100))
+    screen.blit(white_text, (WINDOW_WIDTH - white_text.get_width() - 10, 100))
 
 
 # Draw mode indicator function
 def draw_mode_indicator(place_mode):
     mode_text = small_font.render("Mode: Place" if place_mode else "Mode: Move", True, BLACK)
-    screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2, HEIGHT // 5 + 30))
+    screen.blit(mode_text, (WINDOW_WIDTH // 2 - mode_text.get_width() // 2, WINDOW_HEIGHT // 5 + 30))
 
 
 # TIMER : 
@@ -227,20 +330,23 @@ def draw_time_left_indicator(time_left):
     else : 
         min, sec = seconds_to_minutes_seconds(time_left)
         if min == "0":
-            string = "Time left: "+sec+" s"
+            string = "Time left: "+sec+"\'"
         elif sec == "0":
-            string = "Time left: "+ min +" min"
+            string = "Time left: "+ min +"\""
         else:
-            string = "Time left: "+  min + " min "+sec+" s"
+            string = "Time left: "+  min + "\' "+sec+"\""
     font = pygame.font.Font(None, 30) 
-    mode_text = font.render(string, True, BLACK)
-    screen.blit(mode_text, (WIDTH // 2 - mode_text.get_width() // 2 - 250 , HEIGHT // 5 + 35))
+    mode_text = font.render(string, True, GRAY)
+    # screen.blit(mode_text, (WINDOW_WIDTH // 2 - mode_text.get_width() // 2 - 250 , WINDOW_HEIGHT // 5 + 35))
+    screen.blit(mode_text, (14, 60))
     
     
 
 # Draw game function
 def draw_game(place_mode,change_view, timer, time_left):
-    draw_grid()
+    draw_grid(place_mode)  # This now includes the selected square and valid moves
+    draw_unused_pieces()
+    draw_hovered_stack(game.mouse_pos)
     draw_info_button()
     draw_timer_button(timer)
     draw_pieces(change_view)
@@ -249,21 +355,44 @@ def draw_game(place_mode,change_view, timer, time_left):
     draw_mode_indicator(place_mode)
     draw_changeView_button()
     draw_time_left_indicator(time_left)
+    
+    
+def get_valid_moves(row, col):
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
+    moves = []
+
+    for dr, dc in directions:
+        new_row, new_col = row + dr, col + dc
+        if 0 <= new_row < game.GRID_SIZE and 0 <= new_col < game.GRID_SIZE:
+            if game.is_valid_move(new_row, new_col):  # Check if the move is valid
+                moves.append((new_row, new_col))
+
+    return moves
+
+
+def reset_visuals():
+    global last_clicked_square, valid_moves
+    last_clicked_square = None
+    valid_moves = []
 
 
 # Handle mouse click function
 def handle_click():
+    global last_clicked_square, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
-    if y >= GRID_Y_OFFSET:
+    if y >= GRID_Y_OFFSET and x >= GRID_X_OFFSET and y <= WINDOW_HEIGHT - MARGIN_BOTTOM and x <= WINDOW_WIDTH - GRID_X_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = (x - GRID_X_OFFSET) // CELL_SIZE
+        last_clicked_square = (row, col)  # Store the last clicked square
+        valid_moves = get_valid_moves(row, col)  # Get valid adjacent moves
         return row, col
 
-    # Check if the click is on the Info button
-    global info_button_rect  # Access the global variable
-    global changeView_button_rect
+    
+    # Check if the click is on the Info, Change View, or Restart buttons
+    global info_button_rect, changeView_button_rect, restart_button_rect
+    
     global Timer_button_rect
     
     if info_button_rect and info_button_rect.collidepoint(x, y):
@@ -272,34 +401,33 @@ def handle_click():
         return "ChangeView Button"
     if Timer_button_rect and Timer_button_rect.collidepoint(x, y):
         return "Timer Button"
-    
-    # Check if the click is on the Restart button
-    global restart_button_rect  # Access the global variable
     if restart_button_rect and restart_button_rect.collidepoint(x, y):
         return "Restart Button"
 
     return None
 
 
+
+
 # Draw popup with rules
 def draw_popup():
     # Draw a slightly less transparent overlay
-    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 200))  # Less transparent black
     screen.blit(overlay, (0, 0))
 
-    # Increase the size of the popup box
-    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 4//5 )
+        # Increase the size of the popup box (make it larger to fit the text better)
+    popup_rect = pygame.Rect(WINDOW_WIDTH // 8, WINDOW_HEIGHT // 8, WINDOW_WIDTH * 3 // 4, WINDOW_HEIGHT * 3 // 4)
     pygame.draw.rect(screen, WHITE, popup_rect)
 
    # Adjust the size of the popup title
-    title_font = pygame.font.SysFont(None, 30)  # Smaller header size
+    title_font = pygame.font.SysFont(None, 50)  # Smaller header size for better fitting
     title = title_font.render("GAME RULES", True, BLACK)
     # screen.blit(title, (popup_rect.centerx - title.get_width() // 2 , popup_rect.y + 20))
     screen.blit(title, (popup_rect.centerx - title.get_width() // 2 , popup_rect.y + 12))
 
     # Reduce text size and wrap it within the popup
-    rule_font = pygame.font.SysFont(None, 29)  # Smaller text size for readability
+    rule_font = pygame.font.SysFont(None, 25)  # Smaller text size for better readability
     rules = [
         "• Goal: Create a path from one side of the board to the opposite side.",
         "• Setup: Each player has 15 pieces to place on the 4x4 grid.",
@@ -308,23 +436,25 @@ def draw_popup():
         "  - Pieces can be placed either lying or standing.",
         "  - Left-click to place a lying piece, right-click to place a standing piece.",
         "  - Pieces can stack up to 4 high, but only lying pieces can form a path.",
-        "  - After placing all pieces, players can move their pieces to continue playing."
+        "  - After placing all pieces, players can move their pieces to continue playing.",
     ]
 
     # Render and wrap text within the popup window
-    y_offset = 40  # Start y position for rules
+    y_offset = 55  # Start y position for rules
+    line_spacing = 12  # Decrease line spacing for better readability
     for rule in rules:
         wrapped_text = wrap_text(rule, rule_font, popup_rect.width - 40)  # Wrap text manually
         for line in wrapped_text:
             rule_text = rule_font.render(line, True, BLACK)
             screen.blit(rule_text, (popup_rect.x + 20, popup_rect.y + y_offset))
-            y_offset += rule_text.get_height() + 10  # Add spacing between lines
+            y_offset += rule_text.get_height() + line_spacing  # Add reduced line spacing between lines
 
-    # Draw the Close button
+    # Draw the Close button (change color to cream, with black text and border)
     # button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 80, 200, 50)
-    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 48, 200, 40)
-    pygame.draw.rect(screen, GREEN, button_rect)
-    button_text = rule_font.render("Close", True, BLACK)
+    button_rect = pygame.Rect(popup_rect.centerx - 55, popup_rect.y + popup_rect.height - 48, 110, 32)
+    pygame.draw.rect(screen, CREME, button_rect)  # Change button color to cream
+    pygame.draw.rect(screen, BLACK, button_rect, 3)  # Add black border around the button
+    button_text = rule_font.render("Close", True, BLACK)  # Set font color to black
     screen.blit(button_text, (
     button_rect.centerx - button_text.get_width() // 2, button_rect.centery - button_text.get_height() // 2))
 
@@ -332,25 +462,26 @@ def draw_popup():
 
 # Draw popup for optional timer
 def draw_popup_timer():
-    # The button title will have the current timer (default 0) "Set Timer: 0"
+    # The button title will have the current timer (default inf) "Timer: inf"
     
     # Draw a slightly less transparent overlay
-    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 200))  # Less transparent black
     screen.blit(overlay, (0, 0))
+    
 
     # Increase the size of the popup box
-    popup_rect = pygame.Rect(WIDTH // 6, HEIGHT // 6, WIDTH * 2 // 3, HEIGHT * 2 // 3)
+    popup_rect = pygame.Rect(WINDOW_WIDTH // 6, WINDOW_HEIGHT // 6, WINDOW_WIDTH * 2// 3, WINDOW_HEIGHT * 2 // 3)
     pygame.draw.rect(screen, WHITE, popup_rect)
 
     # Adjust the size of the popup title
-    title_font = pygame.font.SysFont(None, 30)  
+    title_font = pygame.font.SysFont(None, 50)  
     title = title_font.render("SET TIMER", True, BLACK)
     screen.blit(title, (popup_rect.centerx - title.get_width() // 2, popup_rect.y + 12))
 
-    text_font = pygame.font.SysFont(None, 29)
-    text = text_font.render("Select a timer (min) for game rounds:", True, BLACK)
-    screen.blit(text, (popup_rect.centerx - text.get_width() // 2, popup_rect.y + 50))
+    text_font = pygame.font.SysFont(None, 30)
+    text = text_font.render("Select a timer (in minutes) for each game round:", True, BLACK)
+    screen.blit(text, (popup_rect.centerx - text.get_width() // 2, popup_rect.y + 100))
 
     #array with 0 to 10 minute buttons aligned in a row:
     button_width = 40  
@@ -365,21 +496,26 @@ def draw_popup_timer():
     timer_array = [pygame.Rect(start_x + i * (button_width + spacing), button_y, button_width, button_height) for i in range(11)]
     
     #handle first button (infinity):
-    pygame.draw.rect(screen, GREEN, timer_array[0])
+    pygame.draw.rect(screen, CREME, timer_array[0])
+    pygame.draw.rect(screen, BLACK, timer_array[0], 3)  # Add black border around the button
     nb = text_font.render("inf", True, BLACK)
     screen.blit(nb, (timer_array[0].centerx - nb.get_width() // 2, timer_array[0].centery - nb.get_height() // 2))
     
     for i in range(1,11):
-        pygame.draw.rect(screen, GREEN, timer_array[i])
+        pygame.draw.rect(screen, CREME, timer_array[i])
+        pygame.draw.rect(screen, BLACK, timer_array[i], 3)  # Add black border around the button
         nb = text_font.render(str(i), True, BLACK)
         screen.blit(nb, (timer_array[i].centerx - nb.get_width() // 2, timer_array[i].centery - nb.get_height() // 2))
+    
 
     # Draw the Cancel button below the timer buttons
-    button_rect = pygame.Rect(popup_rect.centerx - 100, popup_rect.y + popup_rect.height - 60, 200, 40)
-    pygame.draw.rect(screen, GREEN, button_rect)
+    button_rect = pygame.Rect(popup_rect.centerx - 55, popup_rect.y + popup_rect.height - 48, 110, 32)
+    pygame.draw.rect(screen, CREME, button_rect)
+    pygame.draw.rect(screen, BLACK, button_rect, 3)  # Add black border around the button
     button_text = text_font.render("Cancel", True, BLACK)
     screen.blit(button_text, (
         button_rect.centerx - button_text.get_width() // 2, button_rect.centery - button_text.get_height() // 2))
+    
 
     return button_rect, timer_array
 
@@ -415,12 +551,16 @@ def game_loop():
     change_view = False
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    global valid_moves
+    global last_clicked_square
     timer = "inf" #infinity  = no timer by default
     
     start = time() 
     flag = 0  
 
     while True:
+        
+        game.mouse_pos = pygame.mouse.get_pos()  # Gets the current mouse position
 
         #setting a timer for the round :
                     
@@ -462,11 +602,15 @@ def game_loop():
             
         if popup_2_open:
             button_rect_2, timer_array = draw_popup_timer()
+            
+        # Check the grid over which the mouse hovers and display all the pieces in the stack in the specified area
+        draw_hovered_stack(game.mouse_pos)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+                
                 
             # Detect the Restart button click (even when the game is over)
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -499,6 +643,7 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
+                        reset_visuals()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
@@ -520,6 +665,7 @@ def game_loop():
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
+                                reset_visuals()
                                 start = time()  #restart counter
                         else:
                             # Move a piece
@@ -527,8 +673,9 @@ def game_loop():
                                 from_row, from_col = selected_piece
                                 if game.move_piece(from_row, from_col, row, col):
                                     game.switch_turn()
+                                    reset_visuals()
                                     start = time() #restart counter
-                                selected_piece = None
+                                
                             else:
                                 selected_piece = (row, col)
                     
