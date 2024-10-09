@@ -304,19 +304,27 @@ def draw_game(place_mode, change_view):
 else:
     selected_piece = (row, col) """
 
-def handle_move_piece(row, col):
+def handle_move_click(row, col):
     global selected_piece, valid_moves
 
     print("Handling move piece")
-    print("Selected piece:", selected_piece)
-    print("Valid moves:", valid_moves)
+    print("Selected piece before:", selected_piece)
+    print("Valid moves before:", valid_moves)
 
     print("ROW, COL:", (row, col))
 
     if selected_piece is None:
-        # Select the piece
-        selected_piece = (row, col)
-        valid_moves = get_valid_moves(row, col)
+
+        # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
+        top_piece_opposite_color = game.get_top_piece_opposite_color(row, col)
+        if top_piece_opposite_color:
+            print("Top piece opposite color")
+            pass
+            # TO DO: Flash red square Tommy style
+        else:
+            # Select the piece
+            selected_piece = (row, col)
+            valid_moves = game.get_valid_moves(row, col)
     elif selected_piece == (row, col):
         # Deselect the piece if the same square is clicked again
         reset_moves_preview_visuals()
@@ -324,6 +332,9 @@ def handle_move_piece(row, col):
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
         if game.move_piece(from_row, from_col, row, col):
+
+            # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
+            # Could return remaining pieces instead. Switch turns if zero.
             game.switch_turn()
             reset_moves_preview_visuals()
 
@@ -523,7 +534,7 @@ def game_loop():
                                 game.switch_turn()
                                 reset_moves_preview_visuals()
                         else:
-                            handle_move_piece(row, col)
+                            handle_move_click(row, col)
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
