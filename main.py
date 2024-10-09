@@ -339,22 +339,6 @@ def handle_move_click(row, col):
             reset_moves_preview_visuals()
 
 
-
-    
-
-def get_valid_moves(row, col):
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
-    moves = []
-
-    for dr, dc in directions:
-        new_row, new_col = row + dr, col + dc
-        if 0 <= new_row < game.GRID_SIZE and 0 <= new_col < game.GRID_SIZE:
-            if game.is_valid_move(new_row, new_col):  # Check if the move is valid
-                moves.append((new_row, new_col))
-
-    return moves
-
-
 def reset_moves_preview_visuals():
     global selected_piece, valid_moves
     selected_piece = None
