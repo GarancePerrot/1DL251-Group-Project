@@ -297,7 +297,6 @@ def draw_game(place_mode, change_view):
 
 def draw_error(text, color, row, col, t, text_position=(10, 50)):
 
-    print("Inne i draw_error")
 
     #Get the coordinates for the current cell
     # cell_row, cell_col = current_cell 
@@ -330,19 +329,16 @@ def draw_error(text, color, row, col, t, text_position=(10, 50)):
         msg = small_font.render(line,True,color)
         msg.set_alpha(alpha)
         screen.blit(msg,(text_position_x,text_position_y))
-        row+=msg.get_height()
+        text_position_y+=msg.get_height()
 
 
-
+error_position = None
+error_msg = None
+error_time = None
 
 def handle_move_click(row, col):
-    global selected_piece, valid_moves
+    global selected_piece, valid_moves,error_position,error_msg,error_time
 
-    """ print("Handling move piece")
-    print("Selected piece before:", selected_piece)
-    print("Valid moves before:", valid_moves)
-
-    print("ROW, COL:", (row, col)) """
 
     if selected_piece is None:
 
@@ -350,8 +346,9 @@ def handle_move_click(row, col):
         if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
             print("Top piece opposite color")
 
-            error_text = "Invalid move,\n read instructions"
-            draw_error(error_text, BLACK, row, col, t=time.time())
+            error_msg = "Invalid move,\nread instructions"
+            error_position = (row,col)
+            error_time = time.time()
         else:
             # Select the piece
             selected_piece = (row, col)
@@ -368,6 +365,12 @@ def handle_move_click(row, col):
             # Could return remaining pieces instead. Switch turns if zero.
             game.switch_turn()
             reset_moves_preview_visuals()
+    elif (row, col) not in valid_moves:
+        print("Square not in valid moves")
+
+        error_msg = "Invalid move,\nread instructions"
+        error_position = (row,col)
+        error_time = time.time()
 
 
 def reset_moves_preview_visuals():
@@ -476,6 +479,7 @@ def game_loop():
     winner = None  # Track the winner
     global selected_piece
     global valid_moves
+    global error_msg,error_position,error_time
 
     while True:
         
@@ -484,6 +488,14 @@ def game_loop():
         draw_game(place_mode,change_view)
         draw_restart_button()
         
+        if error_msg:
+            draw_error(error_msg,BLACK,error_position[0],error_position[1],error_time)
+
+            if time.time() - error_time > 2:
+                error_msg = None
+                error_position = None
+                error_time = None
+
         if game_end:
             draw_end_message(winner)  # Displays a prompt at the end of the game
 
@@ -547,6 +559,10 @@ def game_loop():
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
                                 reset_moves_preview_visuals()
+                            else:
+                                error_msg = "Can't place on standing"
+                                error_position = (row,col)
+                                error_time = time.time()
                         else:
                             handle_move_click(row, col)
 
