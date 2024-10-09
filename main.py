@@ -316,8 +316,7 @@ def handle_move_click(row, col):
     if selected_piece is None:
 
         # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
-        top_piece_opposite_color = game.get_top_piece_opposite_color(row, col)
-        if top_piece_opposite_color:
+        if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
             print("Top piece opposite color")
             pass
             # TO DO: Flash red square Tommy style
