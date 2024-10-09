@@ -1,6 +1,7 @@
 import pygame
 import sys
 from game import Game, PlayerColor, PieceType  # importing classes from game file
+import time
 
 # Initialize pygame
 pygame.init()  # init for pygame package
@@ -72,9 +73,7 @@ def draw_grid(place_mode):
 
     # Highlight valid adjacent moves
     if not place_mode:
-        print(valid_moves)
         for row, col in valid_moves:
-            print("försöker rita 2")
             x = GRID_X_OFFSET + col * CELL_SIZE
             y = GRID_Y_OFFSET + row * CELL_SIZE
             pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
@@ -296,30 +295,63 @@ def draw_game(place_mode, change_view):
     draw_changeView_button()
 
 
-""" if selected_piece:
-    from_row, from_col = selected_piece
-    if game.move_piece(from_row, from_col, row, col):
-        game.switch_turn()
-        reset_moves_preview_visuals()
-else:
-    selected_piece = (row, col) """
+def draw_error(text, color, row, col, t, text_position=(10, 50)):
+
+    print("Inne i draw_error")
+
+    #Get the coordinates for the current cell
+    # cell_row, cell_col = current_cell 
+    rect_x = GRID_X_OFFSET + col * CELL_SIZE
+    rect_y = GRID_Y_OFFSET + row * CELL_SIZE 
+
+    #Split the text at every line break
+    lines = text.split("\n")
+
+    text_position_x = text_position[0]
+    text_position_y = text_position[1]
+
+    #Calculate fade factor
+    t_delta = time.time() - t
+
+    f = max(0, min(1, 1 - (t_delta/2)))
+    alpha = int(f*255)
+    alpha_square = int(f*225)
+
+    #Create transparent surface to draw the red rectangle
+    rect_surface = pygame.Surface((CELL_SIZE,CELL_SIZE),pygame.SRCALPHA)
+    rect_surface.fill((0,0,0,0))
+
+    #Draw the red rectangle 
+    pygame.draw.rect(rect_surface,(255,0,0,alpha_square), (0,0,CELL_SIZE,CELL_SIZE),7)
+    screen.blit(rect_surface,(rect_x,rect_y))
+
+    #Draw every line of text on top of each other
+    for line in lines:
+        msg = small_font.render(line,True,color)
+        msg.set_alpha(alpha)
+        screen.blit(msg,(text_position_x,text_position_y))
+        row+=msg.get_height()
+
+
+
 
 def handle_move_click(row, col):
     global selected_piece, valid_moves
 
-    print("Handling move piece")
+    """ print("Handling move piece")
     print("Selected piece before:", selected_piece)
     print("Valid moves before:", valid_moves)
 
-    print("ROW, COL:", (row, col))
+    print("ROW, COL:", (row, col)) """
 
     if selected_piece is None:
 
         # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
         if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
             print("Top piece opposite color")
-            pass
-            # TO DO: Flash red square Tommy style
+
+            error_text = "Invalid move,\n read instructions"
+            draw_error(error_text, BLACK, row, col, t=time.time())
         else:
             # Select the piece
             selected_piece = (row, col)
@@ -486,7 +518,6 @@ def game_loop():
                 # If the game is over, the placement or movement of pieces is no longer handled
                 if game_end:
                     continue
-
 
             if not popup_open:  # Don't process game events when popup is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
