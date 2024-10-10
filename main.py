@@ -202,6 +202,8 @@ def draw_pieces(change_view):
                     # If there are more than 5 pieces, only show the top 5
                     start_index = max(0, len(stack) - 5)
 
+                    lying_piece_count = 0
+
                     # Draw the top 5 pieces starting from the latest one
                     for i in range(start_index, len(stack)):
                         piece = stack[i]
@@ -210,13 +212,20 @@ def draw_pieces(change_view):
                         # Draw lying pieces
                         if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
                             pygame.draw.rect(screen, color, (x, y, CELL_SIZE // 2 + 20, CELL_SIZE // 2 - 40))
-                        else:  # Draw standing pieces with width 1/3 of lying pieces, height is the same
-                            standing_width = (CELL_SIZE // 2 + 20) // 3  # Width is 1/3 of lying piece
-                            pygame.draw.rect(screen, color, (
-                                x + ((CELL_SIZE // 2 + 20) - standing_width) // 2,  # Center the standing piece
-                                y, standing_width, CELL_SIZE // 2 - 40))  # Keep the same height
+                            y -= CELL_SIZE // 2 - 40  # Move upward for the next piece
+                            lying_piece_count += 1  # Count lying pieces
 
-                        y -= CELL_SIZE // 2 - 40  # Move upward for the next piece
+                        else:  # Draw standing pieces with width 1/3 of lying pieces, height is the same
+                            if lying_piece_count >= 3:
+                                adjusted_height = (CELL_SIZE // 2 + 55) // 2  # Shorten height
+                            else:
+                                adjusted_height = CELL_SIZE // 2 + 20
+                            
+                            pygame.draw.rect(screen, color, (
+                                x + ((CELL_SIZE // 2 + 20) - (CELL_SIZE // 2 - 40)) // 2,  # Center the standing piece
+                                y - (adjusted_height - (CELL_SIZE // 2 - 40)),  # Adjust y
+                                CELL_SIZE // 2 - 40, adjusted_height))  # Adjust height
+                            y -= adjusted_height  # Move upward for the next piece
 
                     # If there are more than 5 pieces, show "+n" for the remaining pieces
                     if len(stack) > 5:
@@ -240,6 +249,7 @@ def draw_pieces(change_view):
                     if len(stack) > 1:
                         height_text = small_font.render(str(len(stack)), True, RED)
                         screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
+
 
 def draw_hovered_stack(mouse_pos):
     hovered_cell = game.get_hovered_cell(mouse_pos, GRID_X_OFFSET, CELL_SIZE)
