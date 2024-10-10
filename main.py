@@ -372,8 +372,10 @@ def draw_error(text, color, row, col, t, text_position=(10, 50)):
     #Split the text at every line break
     lines = text.split("\n")
 
-    text_position_x = text_position[0]
-    text_position_y = text_position[1]
+    # text_position_x = text_position[0]
+    # text_position_y = text_position[1]
+    text_position_x = 10
+    text_position_y = 150
 
     #Calculate fade factor
     t_delta = time() - t
@@ -412,7 +414,7 @@ def handle_move_click(row, col):
         if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
             print("Top piece opposite color")
 
-            error_msg = "Invalid move,\nread instructions"
+            error_msg = "Invalid move,\n       read   \ninstructions!"
             error_position = (row,col)
             error_time = time()
         else:
@@ -444,88 +446,6 @@ def reset_moves_preview_visuals():
     selected_piece = None
     valid_moves = []
 
-def draw_error(text, color, row, col, t, text_position=(10, 50)):
-
-
-    #Get the coordinates for the current cell
-    # cell_row, cell_col = current_cell 
-    rect_x = GRID_X_OFFSET + col * CELL_SIZE
-    rect_y = GRID_Y_OFFSET + row * CELL_SIZE 
-
-    #Split the text at every line break
-    lines = text.split("\n")
-
-    text_position_x = text_position[0]
-    text_position_y = text_position[1]
-
-    #Calculate fade factor
-    t_delta = time() - t
-
-    f = max(0, min(1, 1 - (t_delta/2)))
-    alpha = int(f*255)
-    alpha_square = int(f*225)
-
-    #Create transparent surface to draw the red rectangle
-    rect_surface = pygame.Surface((CELL_SIZE,CELL_SIZE),pygame.SRCALPHA)
-    rect_surface.fill((0,0,0,0))
-
-    #Draw the red rectangle 
-    pygame.draw.rect(rect_surface,(255,0,0,alpha_square), (0,0,CELL_SIZE,CELL_SIZE),7)
-    screen.blit(rect_surface,(rect_x,rect_y))
-
-    #Draw every line of text on top of each other
-    for line in lines:
-        msg = small_font.render(line,True,color)
-        msg.set_alpha(alpha)
-        screen.blit(msg,(text_position_x,text_position_y))
-        text_position_y+=msg.get_height()
-
-
-error_position = None
-error_msg = None
-error_time = None
-
-def handle_move_click(row, col):
-    global selected_piece, valid_moves,error_position,error_msg,error_time
-
-
-    if selected_piece is None:
-
-        # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
-        if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
-            print("Top piece opposite color")
-
-            error_msg = "Invalid move,\nread instructions"
-            error_position = (row,col)
-            error_time = time()
-        else:
-            # Select the piece
-            selected_piece = (row, col)
-            valid_moves = game.get_valid_moves(row, col)
-    elif selected_piece == (row, col):
-        # Deselect the piece if the same square is clicked again
-        reset_moves_preview_visuals()
-    elif (row, col) in valid_moves:
-        # Move the piece if the destination is valid
-        from_row, from_col = selected_piece
-        if game.move_piece(from_row, from_col, row, col):
-
-            # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
-            # Could return remaining pieces instead. Switch turns if zero.
-            game.switch_turn()
-            reset_moves_preview_visuals()
-    elif (row, col) not in valid_moves:
-        print("Square not in valid moves")
-
-        error_msg = "Invalid move,\nread instructions"
-        error_position = (row,col)
-        error_time = time()
-
-
-def reset_moves_preview_visuals():
-    global selected_piece, valid_moves
-    selected_piece = None
-    valid_moves = []
 
 # Handle mouse click function
 def handle_click():
