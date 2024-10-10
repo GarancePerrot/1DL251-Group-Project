@@ -626,6 +626,7 @@ def game_loop():
     timer = "inf" #infinity  = no timer by default
     
     start = time() 
+    print("START: ", + start)
     flag = 0  
 
     while True:
@@ -641,7 +642,7 @@ def game_loop():
         
         
         #print("time() - start : " , time()- start, " < ? , duration : ", duration)
-        if time() - start >= duration: #and time exceeded
+        if time() - start >= duration and winner == None: #and time exceeded
             #current player loses :
             current_player = game.current_player
             print(current_player)
@@ -653,9 +654,9 @@ def game_loop():
             time_left = "0"
             
         #simplify time left for the round to show user
-        if timer == "inf":
+        if timer == "inf" and winner == None:
             time_left = "inf"
-        else:
+        elif winner == None:
             time_left = str(int(duration - time()+start))
             
                 
@@ -759,7 +760,10 @@ def game_loop():
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     if button_rect.collidepoint(mouse_x, mouse_y):
                         popup_open = False  # Close the popup when button is clicked
-                
+                #PRESS ESC TO CLOSE DOWN POPUP
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        popup_open = False
 
             else: #popup for timer is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
