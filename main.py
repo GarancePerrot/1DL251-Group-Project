@@ -3,6 +3,7 @@ import sys
 from time import time
 import math
 from game import Game, PlayerColor, PieceType  # importing classes from game file
+from time import time
 
 # Initialize pygame
 pygame.init()  # init for pygame package
@@ -38,6 +39,7 @@ GRAY = (80, 80, 80)
 
 # Set up display
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("4-in-a-Row Stacking Game")
 
 # Initialize game
@@ -47,12 +49,14 @@ game = Game()  # creating an object for Game class
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
 
-last_clicked_square = None  # Stores the last clicked square
+selected_piece = None  # Stores the last clicked square
 valid_moves = []  # Stores valid adjacent moves
+
 
 
 # Draw grid function
 def draw_grid(place_mode):
+    global selected_piece, valid_moves
     screen.fill(CREME)
 
     # Draw grid lines and highlight clicked square
@@ -61,10 +65,11 @@ def draw_grid(place_mode):
                          ((i + 2) * CELL_SIZE, WINDOW_HEIGHT - MARGIN_BOTTOM), LINE_WIDTH)  # vertical lines
         pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE),
                          (WINDOW_WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
-        
-        # Highlight the clicked square if it exists
-    if last_clicked_square is not None and not place_mode:
-        row, col = last_clicked_square
+
+
+    # Highlight the clicked square if it exists
+    if selected_piece is not None and not place_mode:
+        row, col = selected_piece
         x = GRID_X_OFFSET + col * CELL_SIZE
         y = GRID_Y_OFFSET + row * CELL_SIZE
 
@@ -78,6 +83,8 @@ def draw_grid(place_mode):
             x = GRID_X_OFFSET + col * CELL_SIZE
             y = GRID_Y_OFFSET + row * CELL_SIZE
             pygame.draw.rect(screen, (144, 238, 144), (x, y, CELL_SIZE, CELL_SIZE), 5)  # Light green for valid moves
+
+
 
 
 # Info button
@@ -183,22 +190,21 @@ def draw_changeView_button():
 def draw_pieces(change_view):
     for row in range(4):
         for col in range(4):
-            stack = game.board[row][col]
-            
-            if stack.height != 0:
+            stack = game.board[row][col].stack
+
+            if len(stack) != 0:
                 if change_view:
                     # Side view logic: only show the top 5 pieces
-                    game.max_display_pieces = min(stack.height, 5)
+                    game.max_display_pieces = min(len(stack), 5)
                     x = GRID_X_OFFSET + col * CELL_SIZE + 15
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE - 15
 
-
                     # If there are more than 5 pieces, only show the top 5
-                    start_index = max(0, stack.height - 5)
+                    start_index = max(0, len(stack) - 5)
 
                     # Draw the top 5 pieces starting from the latest one
-                    for i in range(start_index, stack.height):
-                        piece = stack.stack[i]
+                    for i in range(start_index, len(stack)):
+                        piece = stack[i]
                         color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                         # Draw lying pieces
@@ -213,38 +219,36 @@ def draw_pieces(change_view):
                         y -= CELL_SIZE // 2 - 40  # Move upward for the next piece
 
                     # If there are more than 5 pieces, show "+n" for the remaining pieces
-                    if stack.height > 5:
-                        remaining_pieces = stack.height - 5
+                    if len(stack) > 5:
+                        remaining_pieces = len(stack) - 5
                         text = small_font.render(f"+{remaining_pieces}", True, RED)
                         screen.blit(text, (x, GRID_Y_OFFSET + (row + 1) * CELL_SIZE - text.get_height()))
 
                 else:
-
                     # Top-down view logic: draw circular pieces and show stack height
                     x = GRID_X_OFFSET + col * CELL_SIZE + CELL_SIZE // 2  # X position
                     y = GRID_Y_OFFSET + row * CELL_SIZE + CELL_SIZE // 2  # Y position
 
                     # Draw the top piece
-                    piece = stack.stack[stack.height - 1]
+                    piece = stack[len(stack) - 1]
                     color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                     # Draw a circular piece for the top-down view
                     pygame.draw.circle(screen, color, (x, y), CELL_SIZE // 3)
 
                     # If there is more than one piece, show the stack height
-                    if stack.height > 1:
-                        height_text = small_font.render(str(stack.height), True, RED)
+                    if len(stack) > 1:
+                        height_text = small_font.render(str(len(stack)), True, RED)
                         screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
-
 
 def draw_hovered_stack(mouse_pos):
     hovered_cell = game.get_hovered_cell(mouse_pos, GRID_X_OFFSET, CELL_SIZE)
 
     if hovered_cell:
         row, col = hovered_cell
-        stack = game.board[row][col]
+        stack = game.board[row][col].stack
 
-        if stack.height > 0:
+        if len(stack) > 0:
             # Display the stack on the right side of the screen, aligned with the unused pieces on the left
             stack_x = WINDOW_WIDTH - CELL_SIZE - 50  # Leave a 50-pixel margin on the right side
             stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 5 # Start stacking from the bottom of the board, aligned with the left side
@@ -255,8 +259,8 @@ def draw_hovered_stack(mouse_pos):
             piece_margin = 0  # Set the margin between each piece
 
             # Display pieces in stack order, from bottom to top
-            for i in range(stack.height):
-                piece = stack.stack[i]
+            for i in range(len(stack)):
+                piece = stack[i]
                 color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
                 # Display lying pieces
@@ -276,8 +280,7 @@ def draw_hovered_stack(mouse_pos):
 
                 stack_y -= piece_height + piece_margin  # Move upward and leave space between pieces
 
-
-
+            
 # Draw turn indicator function
 def draw_turn_indicator():
     current_player = "Black" if game.get_current_player() == PlayerColor.BLACK else "White"
@@ -356,37 +359,183 @@ def draw_game(place_mode,change_view, timer, time_left):
     draw_changeView_button()
     draw_time_left_indicator(time_left)
     
-    
-def get_valid_moves(row, col):
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
-    moves = []
-
-    for dr, dc in directions:
-        new_row, new_col = row + dr, col + dc
-        if 0 <= new_row < game.GRID_SIZE and 0 <= new_col < game.GRID_SIZE:
-            if game.is_valid_move(new_row, new_col):  # Check if the move is valid
-                moves.append((new_row, new_col))
-
-    return moves
 
 
-def reset_visuals():
-    global last_clicked_square, valid_moves
-    last_clicked_square = None
+def draw_error(text, color, row, col, t, text_position=(10, 50)):
+
+
+    #Get the coordinates for the current cell
+    # cell_row, cell_col = current_cell 
+    rect_x = GRID_X_OFFSET + col * CELL_SIZE
+    rect_y = GRID_Y_OFFSET + row * CELL_SIZE 
+
+    #Split the text at every line break
+    lines = text.split("\n")
+
+    text_position_x = text_position[0]
+    text_position_y = text_position[1]
+
+    #Calculate fade factor
+    t_delta = time() - t
+
+    f = max(0, min(1, 1 - (t_delta/2)))
+    alpha = int(f*255)
+    alpha_square = int(f*225)
+
+    #Create transparent surface to draw the red rectangle
+    rect_surface = pygame.Surface((CELL_SIZE,CELL_SIZE),pygame.SRCALPHA)
+    rect_surface.fill((0,0,0,0))
+
+    #Draw the red rectangle 
+    pygame.draw.rect(rect_surface,(255,0,0,alpha_square), (0,0,CELL_SIZE,CELL_SIZE),7)
+    screen.blit(rect_surface,(rect_x,rect_y))
+
+    #Draw every line of text on top of each other
+    for line in lines:
+        msg = small_font.render(line,True,color)
+        msg.set_alpha(alpha)
+        screen.blit(msg,(text_position_x,text_position_y))
+        text_position_y+=msg.get_height()
+
+
+error_position = None
+error_msg = None
+error_time = None
+
+def handle_move_click(row, col):
+    global selected_piece, valid_moves, error_position, error_msg, error_time
+
+
+    if selected_piece is None:
+
+        # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
+        if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
+            print("Top piece opposite color")
+
+            error_msg = "Invalid move,\nread instructions"
+            error_position = (row,col)
+            error_time = time()
+        else:
+            # Select the piece
+            selected_piece = (row, col)
+            valid_moves = game.get_valid_moves(row, col)
+    elif selected_piece == (row, col):
+        # Deselect the piece if the same square is clicked again
+        reset_moves_preview_visuals()
+    elif (row, col) in valid_moves:
+        # Move the piece if the destination is valid
+        from_row, from_col = selected_piece
+        if game.move_piece(from_row, from_col, row, col):
+
+            # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
+            # Could return remaining pieces instead. Switch turns if zero.
+            game.switch_turn()
+            reset_moves_preview_visuals()
+    elif (row, col) not in valid_moves:
+        print("Square not in valid moves")
+
+        error_msg = "Invalid move,\n read instructions"
+        error_position = (row,col)
+        error_time = time()
+
+
+def reset_moves_preview_visuals():
+    global selected_piece, valid_moves
+    selected_piece = None
     valid_moves = []
 
+def draw_error(text, color, row, col, t, text_position=(10, 50)):
+
+
+    #Get the coordinates for the current cell
+    # cell_row, cell_col = current_cell 
+    rect_x = GRID_X_OFFSET + col * CELL_SIZE
+    rect_y = GRID_Y_OFFSET + row * CELL_SIZE 
+
+    #Split the text at every line break
+    lines = text.split("\n")
+
+    text_position_x = text_position[0]
+    text_position_y = text_position[1]
+
+    #Calculate fade factor
+    t_delta = time() - t
+
+    f = max(0, min(1, 1 - (t_delta/2)))
+    alpha = int(f*255)
+    alpha_square = int(f*225)
+
+    #Create transparent surface to draw the red rectangle
+    rect_surface = pygame.Surface((CELL_SIZE,CELL_SIZE),pygame.SRCALPHA)
+    rect_surface.fill((0,0,0,0))
+
+    #Draw the red rectangle 
+    pygame.draw.rect(rect_surface,(255,0,0,alpha_square), (0,0,CELL_SIZE,CELL_SIZE),7)
+    screen.blit(rect_surface,(rect_x,rect_y))
+
+    #Draw every line of text on top of each other
+    for line in lines:
+        msg = small_font.render(line,True,color)
+        msg.set_alpha(alpha)
+        screen.blit(msg,(text_position_x,text_position_y))
+        text_position_y+=msg.get_height()
+
+
+error_position = None
+error_msg = None
+error_time = None
+
+def handle_move_click(row, col):
+    global selected_piece, valid_moves,error_position,error_msg,error_time
+
+
+    if selected_piece is None:
+
+        # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
+        if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
+            print("Top piece opposite color")
+
+            error_msg = "Invalid move,\nread instructions"
+            error_position = (row,col)
+            error_time = time()
+        else:
+            # Select the piece
+            selected_piece = (row, col)
+            valid_moves = game.get_valid_moves(row, col)
+    elif selected_piece == (row, col):
+        # Deselect the piece if the same square is clicked again
+        reset_moves_preview_visuals()
+    elif (row, col) in valid_moves:
+        # Move the piece if the destination is valid
+        from_row, from_col = selected_piece
+        if game.move_piece(from_row, from_col, row, col):
+
+            # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
+            # Could return remaining pieces instead. Switch turns if zero.
+            game.switch_turn()
+            reset_moves_preview_visuals()
+    elif (row, col) not in valid_moves:
+        print("Square not in valid moves")
+
+        error_msg = "Invalid move,\nread instructions"
+        error_position = (row,col)
+        error_time = time()
+
+
+def reset_moves_preview_visuals():
+    global selected_piece, valid_moves
+    selected_piece = None
+    valid_moves = []
 
 # Handle mouse click function
 def handle_click():
-    global last_clicked_square, valid_moves
+    global selected_piece, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
     if y >= GRID_Y_OFFSET and x >= GRID_X_OFFSET and y <= WINDOW_HEIGHT - MARGIN_BOTTOM and x <= WINDOW_WIDTH - GRID_X_OFFSET:
         row = (y - GRID_Y_OFFSET) // CELL_SIZE
         col = (x - GRID_X_OFFSET) // CELL_SIZE
-        last_clicked_square = (row, col)  # Store the last clicked square
-        valid_moves = get_valid_moves(row, col)  # Get valid adjacent moves
         return row, col
 
     
@@ -545,14 +694,15 @@ def wrap_text(text, font, max_width):
 # Game loop function
 def game_loop():
     place_mode = True
-    selected_piece = None
     popup_open = False  # Popup state (for info button)
     popup_2_open = False # popup state (for setting optional timer)
-    change_view = False
+    change_view = True  # Default view is side view
     game_end = False  # Track if the game is over
     winner = None  # Track the winner
+    global selected_piece
     global valid_moves
-    global last_clicked_square
+    global error_msg,error_position,error_time
+    global valid_moves
     timer = "inf" #infinity  = no timer by default
     
     start = time() 
@@ -592,6 +742,14 @@ def game_loop():
         draw_game(place_mode,change_view, timer, time_left)
         draw_restart_button()
         
+        if error_msg:
+            draw_error(error_msg,BLACK,error_position[0],error_position[1],error_time)
+
+            if time() - error_time > 2:
+                error_msg = None
+                error_position = None
+                error_time = None
+
         if game_end:
             draw_end_message(winner)  # Displays a prompt at the end of the game
             time_left = "0"
@@ -634,7 +792,6 @@ def game_loop():
             if not popup_open and not popup_2_open:  # Don't process game events when popup is open
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     click_position = handle_click()
-                    print(click_position)
 
                     if click_position == "Info Button":
                         print("Info button clicked")
@@ -643,7 +800,7 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
-                        reset_visuals()
+                        reset_moves_preview_visuals()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
@@ -658,28 +815,18 @@ def game_loop():
                         row, col = click_position
                         current_player = game.get_current_player()
                         
-                
                         #current player makes an action : 
                         if place_mode:
                             # Place a piece
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
-                                reset_visuals()
+                                reset_moves_preview_visuals()
                                 start = time()  #restart counter
                         else:
-                            # Move a piece
-                            if selected_piece:
-                                from_row, from_col = selected_piece
-                                if game.move_piece(from_row, from_col, row, col):
-                                    game.switch_turn()
-                                    reset_visuals()
-                                    start = time() #restart counter
-                                
-                            else:
-                                selected_piece = (row, col)
-                    
-                        
+                            start = time()
+                            handle_move_click(row, col)
+
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         place_mode = not place_mode
