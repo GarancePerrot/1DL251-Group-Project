@@ -334,9 +334,9 @@ def draw_time_left_indicator(time_left):
     else : 
         min, sec = seconds_to_minutes_seconds(time_left)
         if min == "0":
-            string = "Time left: "+sec+"\'"
+            string = "Time left: "+sec+"\""
         elif sec == "0":
-            string = "Time left: "+ min +"\""
+            string = "Time left: "+ min +"\'"
         else:
             string = "Time left: "+  min + "\' "+sec+"\""
     font = pygame.font.Font(None, 30) 
