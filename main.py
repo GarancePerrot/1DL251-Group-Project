@@ -48,6 +48,7 @@ game = Game()  # creating an object for Game class
 # Fonts
 font = pygame.font.SysFont(None, 80)
 small_font = pygame.font.SysFont(None, 40)
+error_font = pygame.font.SysFont(None, 30)
 
 selected_piece = None  # Stores the last clicked square
 valid_moves = []  # Stores valid adjacent moves
@@ -394,7 +395,7 @@ def draw_error(text, color, row, col, t, text_position=(10, 50)):
 
     #Draw every line of text on top of each other
     for line in lines:
-        msg = small_font.render(line,True,color)
+        msg = error_font.render(line,True,color)
         msg.set_alpha(alpha)
         screen.blit(msg,(text_position_x,text_position_y))
         text_position_y+=msg.get_height()
@@ -414,7 +415,7 @@ def handle_move_click(row, col):
         if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
             print("Top piece opposite color")
 
-            error_msg = "Invalid move,\n       read   \ninstructions!"
+            error_msg = "Invalid move,\nread instructions"
             error_position = (row,col)
             error_time = time()
         else:
@@ -436,7 +437,7 @@ def handle_move_click(row, col):
     elif (row, col) not in valid_moves:
         print("Square not in valid moves")
 
-        error_msg = "Invalid move,\n read instructions"
+        error_msg = "Invalid move,\nread instructions"
         error_position = (row,col)
         error_time = time()
 
