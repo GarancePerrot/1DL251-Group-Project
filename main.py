@@ -636,14 +636,14 @@ def game_loop():
 
         #setting a timer for the round :
                     
-        if timer == "inf":
+        if timer == "inf" and game_end == False:
             duration = math.inf
-        else : 
+        elif game_end == False:
             duration = float(timer) * 60 #convert in seconds
         
         
         #print("time() - start : " , time()- start, " < ? , duration : ", duration)
-        if time() - start >= duration and winner == None: #and time exceeded
+        if time() - start >= duration and game_end == False: #and time exceeded
             #current player loses :
             current_player = game.current_player
             print(current_player)
@@ -655,9 +655,9 @@ def game_loop():
             time_left = "0"
             
         #simplify time left for the round to show user
-        if timer == "inf" and winner == None:
+        if timer == "inf" and game_end == False:
             time_left = "inf"
-        elif winner == None:
+        elif game_end == False:
             time_left = str(int(duration - time()+start))
             
                 
