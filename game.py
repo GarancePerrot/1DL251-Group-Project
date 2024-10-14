@@ -63,12 +63,15 @@ class Game:
                 return top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]
 
 
-    def move_piece(self, from_row, from_col, to_row, to_col, sub_stack):
+    def move_piece(self, selected_piece, start_piece, to_row, to_col, sub_stack):
+
+        from_row, from_col = selected_piece
+        start_row, start_col = start_piece
 
         if self.is_valid_move(from_row, from_col, to_row, to_col):
 
             # Move the top piece from the source stack to the destination stack
-            source_stack = self.board[from_row][from_col].stack
+            source_stack = self.board[start_row][start_col].stack
             dest_stack = self.board[to_row][to_col].stack
 
             # Check if destination stack has space
@@ -83,8 +86,14 @@ class Game:
                     PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
                 #förut
                 if len(sub_stack) > 0:
-                    dest_stack.append(sub_stack[0])
-                    sub_stack.pop(0)
+
+                    # clean this logic up. maybe use bools for color and standing
+                    if (sub_stack[0].type == PieceType.BLACK_STANDING or sub_stack[0].type == PieceType.BLACK_LYING) and self.current_player == PlayerColor.BLACK or (sub_stack[0].type == PieceType.WHITE_STANDING or sub_stack[0].type == PieceType.WHITE_LYING) and self.current_player == PlayerColor.WHITE:
+                        dest_stack.append(sub_stack[0])
+                        sub_stack.pop(0)
+                    else:
+                        source_stack.append(sub_stack[0])
+                        sub_stack.pop(0)
 
     # Depth First Search to check if the player has a valid path connecting two sides
     def dfs(self, player, row, col, visited, side_flags):

@@ -463,6 +463,7 @@ def handle_move_click(row, col):
     if selected_piece is None:
         sub_stack.insert(0, stack[-sub_stack_amount - 1])
         sub_stack_amount += 1
+        # print("sub_stack_amount", sub_stack_amount)
 
         if game.get_top_piece_opposite_color(row, col) or stack == []:
             error_msg = "Invalid move,\nread instructions"
@@ -483,8 +484,16 @@ def handle_move_click(row, col):
             
         # Add brick to sub_stack
         else:
+
+            print("stack before", stack)
+            print("sub_stack before", sub_stack)
+            print("sub_stack_amount before", sub_stack_amount)
             sub_stack.insert(0, stack[-sub_stack_amount - 1])
             sub_stack_amount += 1
+            print("stack after", stack)
+            print("sub_stack after", sub_stack)
+            print("sub_stack_amount after", sub_stack_amount)
+            
 
 
     elif (row, col) in valid_moves:
@@ -493,9 +502,11 @@ def handle_move_click(row, col):
             saved_board_state = game.board.copy()
             sub_stack = stack[-sub_stack_amount : -1]
 
+        stack = stack[:len(stack) - sub_stack_amount - 1]
+
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
-        game.move_piece(from_row, from_col, row, col, sub_stack)
+        game.move_piece(selected_piece, start_piece, row, col, sub_stack)
         
         # If the move was the last move
         if len(sub_stack) == 0:
@@ -527,8 +538,7 @@ def reset_moves_logic_vars():
     start_piece = None
     valid_moves = []
     sub_stack = []
-    sub_stack_amount = -1
-    draw_game
+    sub_stack_amount = 0
 
 # Handle mouse click function
 def handle_click():
