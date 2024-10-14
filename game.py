@@ -82,8 +82,9 @@ class Game:
                 PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
                     PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
                 #förut
-                dest_stack.append(sub_stack[0])
-                source_stack.pop()
+                if len(sub_stack) > 0:
+                    dest_stack.append(sub_stack[0])
+                    sub_stack.pop(0)
 
     # Depth First Search to check if the player has a valid path connecting two sides
     def dfs(self, player, row, col, visited, side_flags):

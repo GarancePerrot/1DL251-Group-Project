@@ -55,7 +55,7 @@ start_piece = None  # Stores the starting piece for a move
 valid_moves = []  # Stores valid adjacent moves
 
 sub_stack = []
-sub_stack_index = -1
+sub_stack_amount = 0
 moves_started = False
 saved_board_state = []
 
@@ -456,13 +456,13 @@ error_time = None
 
 def handle_move_click(row, col):
     global start_piece, selected_piece, valid_moves, error_position, error_msg, error_time
-    global sub_stack, sub_stack_index, moves_started, saved_board_state
+    global sub_stack, sub_stack_amount, moves_started, saved_board_state
 
     stack = game.board[row][col].stack
 
     if selected_piece is None:
-        sub_stack.insert(0, stack[sub_stack_index])
-        sub_stack_index -= 1
+        sub_stack.insert(0, stack[-sub_stack_amount - 1])
+        sub_stack_amount += 1
 
         if game.get_top_piece_opposite_color(row, col) or stack == []:
             error_msg = "Invalid move,\nread instructions"
@@ -483,19 +483,21 @@ def handle_move_click(row, col):
             
         # Add brick to sub_stack
         else:
-            sub_stack.insert(0, stack[sub_stack_index])
-            sub_stack_index -= 1
+            sub_stack.insert(0, stack[-sub_stack_amount - 1])
+            sub_stack_amount += 1
 
 
     elif (row, col) in valid_moves:
         # If we are moving with a new sub_stack (larger than 1)
-        if len(sub_stack) > 1 and sub_stack_index == -1:
+        if len(sub_stack) > 1 and sub_stack_amount == -1:
             saved_board_state = game.board.copy()
+            sub_stack = stack[-sub_stack_amount : -1]
 
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
         game.move_piece(from_row, from_col, row, col, sub_stack)
         
+        # If the move was the last move
         if len(sub_stack) == 0:
             game.switch_turn()
             reset_moves_logic_vars()
@@ -508,24 +510,24 @@ def handle_move_click(row, col):
         print("Square not in valid moves")
 
         error_msg = "Invalid move,\nread instructions"
-        error_position = (row,col)
+        error_position = (row, col)
         error_time = time()
 
 
 def cancel_move_with_stack():
-    global sub_stack, sub_stack_index, saved_board_state, moves_started
+    global sub_stack, sub_stack_amount, saved_board_state, moves_started
     
     reset_moves_logic_vars()
     game.board = saved_board_state.copy()
     
 
 def reset_moves_logic_vars():
-    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_index
+    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_amount
     selected_piece = None
     start_piece = None
     valid_moves = []
     sub_stack = []
-    sub_stack_index = -1
+    sub_stack_amount = -1
     draw_game
 
 # Handle mouse click function
