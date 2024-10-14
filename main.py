@@ -53,6 +53,10 @@ error_font = pygame.font.SysFont(None, 30)
 selected_piece = None  # Stores the last clicked square
 valid_moves = []  # Stores valid adjacent moves
 
+sub_stack = []
+sub_stack_index = -1
+moves_started = False
+
 
 
 # Draw grid function
@@ -406,15 +410,12 @@ error_msg = None
 error_time = None
 
 def handle_move_click(row, col):
-    global selected_piece, valid_moves, error_position, error_msg, error_time
-
+    global selected_piece, valid_moves, error_position, error_msg, error_time, sub_stack, sub_stack_index, moves_started
 
     if selected_piece is None:
 
         # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
         if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
-            print("Top piece opposite color")
-
             error_msg = "Invalid move,\nread instructions"
             error_position = (row,col)
             error_time = time()
@@ -422,18 +423,30 @@ def handle_move_click(row, col):
             # Select the piece
             selected_piece = (row, col)
             valid_moves = game.get_valid_moves(row, col)
+
+            # If the clicked piece is the same as the previously clicked piece
     elif selected_piece == (row, col):
-        # Deselect the piece if the same square is clicked again
-        reset_moves_preview_visuals()
+        # Deselect the piece automatically if sub_stack is same as stack
+        if len(sub_stack) == len(game.board[row][col].stack):
+            reset_moves_logic_vars()
+        elif sub_stack_index == -1:
+            # .insert(insert_index, what_to_insert)
+            sub_stack.insert(0, game.board[row][col].stack[sub_stack_index])
+            sub_stack_index -= 1
+
+
+
     elif (row, col) in valid_moves:
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
-        if game.move_piece(from_row, from_col, row, col):
+        if game.move_piece(from_row, from_col, row, col, sub_stack):
 
             # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
             # Could return remaining pieces instead. Switch turns if zero.
             game.switch_turn()
-            reset_moves_preview_visuals()
+            reset_moves_logic_vars()
+            moves_started = True
+
     elif (row, col) not in valid_moves:
         print("Square not in valid moves")
 
@@ -442,11 +455,12 @@ def handle_move_click(row, col):
         error_time = time()
 
 
-def reset_moves_preview_visuals():
+def reset_moves_logic_vars():
     global selected_piece, valid_moves
     selected_piece = None
     valid_moves = []
-
+    sub_stack = []
+    sub_stack_index = -1
 
 # Handle mouse click function
 def handle_click():
@@ -722,7 +736,7 @@ def game_loop():
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
                         game.restart_game()  # Reset the game
-                        reset_moves_preview_visuals()
+                        reset_moves_logic_vars()
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":
@@ -743,7 +757,7 @@ def game_loop():
                             is_standing = event.button == 3  # Right-click for standing piece
                             if game.place_piece(row, col, current_player, is_standing):
                                 game.switch_turn()
-                                reset_moves_preview_visuals()
+                                reset_moves_logic_vars()
                                 start = time()  #restart counter
                         else:
                             start = time()

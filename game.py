@@ -63,10 +63,16 @@ class Game:
                 return top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]
 
 
-    def move_piece(self, from_row, from_col, to_row, to_col):
+    def move_piece(self, from_row, from_col, to_row, to_col, sub_stack):
+
+        if len(sub_stack) > 1:
+            # copy state of the board prior to the stack movement
+            pass
+
+
         stack = self.board[from_row][from_col].stack
         if len(stack) > 0:
-            if not self.is_valid_move(from_row, from_col, to_row, to_col) or stack[0].type == PieceType.EMPTY:
+            if not self.is_valid_move(from_row, from_col, to_row, to_col):
                 return False
 
         # Move the top piece from the source stack to the destination stack
