@@ -484,15 +484,9 @@ def handle_move_click(row, col):
             
         # Add brick to sub_stack
         else:
-
-            print("stack before", stack)
-            print("sub_stack before", sub_stack)
-            print("sub_stack_amount before", sub_stack_amount)
             sub_stack.insert(0, stack[-sub_stack_amount - 1])
             sub_stack_amount += 1
-            print("stack after", stack)
-            print("sub_stack after", sub_stack)
-            print("sub_stack_amount after", sub_stack_amount)
+
             
 
 
