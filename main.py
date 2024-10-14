@@ -56,6 +56,7 @@ valid_moves = []  # Stores valid adjacent moves
 sub_stack = []
 sub_stack_index = -1
 moves_started = False
+saved_board_state = []
 
 
 
@@ -412,10 +413,11 @@ error_time = None
 def handle_move_click(row, col):
     global selected_piece, valid_moves, error_position, error_msg, error_time, sub_stack, sub_stack_index, moves_started
 
+    stack = game.board[row][col].stack
+
     if selected_piece is None:
 
-        # om vi trycker på en enstaka vit ruta som svart. Gör ingenting (flasha Tommys röda)
-        if game.get_top_piece_opposite_color(row, col) or game.board[row][col].stack == []:
+        if game.get_top_piece_opposite_color(row, col) or stack == []:
             error_msg = "Invalid move,\nread instructions"
             error_position = (row,col)
             error_time = time()
@@ -424,14 +426,17 @@ def handle_move_click(row, col):
             selected_piece = (row, col)
             valid_moves = game.get_valid_moves(row, col)
 
-            # If the clicked piece is the same as the previously clicked piece
+    # If the clicked piece is the same as the previously clicked piece
     elif selected_piece == (row, col):
-        # Deselect the piece automatically if sub_stack is same as stack
-        if len(sub_stack) == len(game.board[row][col].stack):
+
+        # Deselect the piece automatically if sub_stack is same as stack / empty stack
+        if len(sub_stack) == len(stack):
             reset_moves_logic_vars()
+            
+        # Add brick to sub_stack
         elif sub_stack_index == -1:
             # .insert(insert_index, what_to_insert)
-            sub_stack.insert(0, game.board[row][col].stack[sub_stack_index])
+            sub_stack.insert(0, stack[sub_stack_index])
             sub_stack_index -= 1
 
 
@@ -441,10 +446,14 @@ def handle_move_click(row, col):
         from_row, from_col = selected_piece
         if game.move_piece(from_row, from_col, row, col, sub_stack):
 
-            # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
-            # Could return remaining pieces instead. Switch turns if zero.
-            game.switch_turn()
-            reset_moves_logic_vars()
+            # If we are moving with a new sub_stack (larger than 1)
+            if len(sub_stack) > 1 and sub_stack_index == -1:
+                saved_board_state = game.board.copy()
+            
+            if len(sub_stack) == 0:
+                game.switch_turn()
+                reset_moves_logic_vars()
+            # reset_moves_logic_vars()
             moves_started = True
 
     elif (row, col) not in valid_moves:
@@ -455,8 +464,15 @@ def handle_move_click(row, col):
         error_time = time()
 
 
+def cancel_move_with_stack():
+    global sub_stack, sub_stack_index, saved_board_state, moves_started
+    
+    reset_moves_logic_vars()
+    game.board = saved_board_state.copy()
+    
+
 def reset_moves_logic_vars():
-    global selected_piece, valid_moves
+    global selected_piece, valid_moves, sub_stack, sub_stack_index
     selected_piece = None
     valid_moves = []
     sub_stack = []
