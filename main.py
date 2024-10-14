@@ -51,6 +51,7 @@ small_font = pygame.font.SysFont(None, 40)
 error_font = pygame.font.SysFont(None, 30)
 
 selected_piece = None  # Stores the last clicked square
+start_piece = None  # Stores the starting piece for a move
 valid_moves = []  # Stores valid adjacent moves
 
 sub_stack = []
@@ -62,7 +63,7 @@ saved_board_state = []
 
 # Draw grid function
 def draw_grid(place_mode):
-    global selected_piece, valid_moves
+    global selected_piece, valid_moves, start_piece
     screen.fill(CREME)
 
     # Draw grid lines and highlight clicked square
@@ -72,6 +73,14 @@ def draw_grid(place_mode):
         pygame.draw.line(screen, BLACK, (2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE),
                          (WINDOW_WIDTH - 2 * CELL_SIZE, GRID_Y_OFFSET + i * CELL_SIZE), LINE_WIDTH)  # horizontal lines
 
+    if start_piece is not None and not place_mode:
+        row, col = start_piece
+        x = GRID_X_OFFSET + col * CELL_SIZE
+        y = GRID_Y_OFFSET + row * CELL_SIZE
+
+        # Draw a rectangle to highlight the clicked square
+        highlight_color = (255, 178, 102)  # Less vibrant brown
+        pygame.draw.rect(screen, highlight_color, (x, y, CELL_SIZE, CELL_SIZE), 3)  # 5 pixel border
 
     # Highlight the clicked square if it exists
     if selected_piece is not None and not place_mode:
@@ -248,43 +257,77 @@ def draw_pieces(change_view):
                         screen.blit(height_text, (x - height_text.get_width() // 2, y - height_text.get_height() // 2))
 
 def draw_hovered_stack(mouse_pos):
+    global sub_stack
     hovered_cell = game.get_hovered_cell(mouse_pos, GRID_X_OFFSET, CELL_SIZE)
+    stack_to_draw = []
+    label = ""
 
-    if hovered_cell:
+    if sub_stack:
+        stack_to_draw = sub_stack
+        label = "Held stack"  # Indicate that sub_stack is being displayed
+    elif hovered_cell:
         row, col = hovered_cell
-        stack = game.board[row][col].stack
+        stack_to_draw = game.board[row][col].stack
+        label = ""  # No label for hovered_cell
 
-        if len(stack) > 0:
-            # Display the stack on the right side of the screen, aligned with the unused pieces on the left
-            stack_x = WINDOW_WIDTH - CELL_SIZE - 50  # Leave a 50-pixel margin on the right side
-            stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 5 # Start stacking from the bottom of the board, aligned with the left side
+    if len(stack_to_draw) > 0:
+        # Display the stack on the right side of the screen, aligned with the unused pieces on the left
+        stack_x = WINDOW_WIDTH - CELL_SIZE - 50  # Leave a 50-pixel margin on the right side
+        stack_y = GRID_Y_OFFSET + CELL_SIZE * 4 - 40 if sub_stack else GRID_Y_OFFSET + CELL_SIZE * 4 - 5  # Start stacking from the bottom of the board, aligned with the left side
 
-            # Ensure the piece size is consistent with the unused pieces
-            piece_height = CELL_SIZE // 2 - 40  # Keep the height consistent with the left side
-            piece_width = CELL_SIZE // 2 + 20   # Ensure the width matches the lying pieces in the grid
-            piece_margin = 0  # Set the margin between each piece
+        # Ensure the piece size is consistent with the unused pieces
+        piece_height = CELL_SIZE // 2 - 40  # Keep the height consistent with the left side
+        piece_width = CELL_SIZE // 2 + 20   # Ensure the width matches the lying pieces in the grid
+        piece_margin = 0  # Set the margin between each piece
 
-            # Display pieces in stack order, from bottom to top
-            for i in range(len(stack)):
-                piece = stack[i]
-                color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
+        # Display pieces in stack order, from bottom to top
+        for i in range(len(stack_to_draw)):
+            piece = stack_to_draw[i]
+            color = BLACK if piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING] else WHITE
 
-                # Display lying pieces
-                if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
-                    pygame.draw.rect(screen, color, (stack_x, stack_y, piece_width, piece_height))
-                else:  # Handle standing pieces
-                    # Standing pieces have 1/3 of the width of lying pieces, with the same height
-                    standing_width = piece_width // 3  # Standing piece width is 1/3 of lying piece
-                    standing_height = piece_height  # Standing piece height is the same as lying piece
+            # Determine the border color: white border for black pieces, black border for white pieces
+            border_color = WHITE if color == BLACK else BLACK
+            border_thickness = 2
 
-                    # Center the standing piece horizontally and draw it
-                    pygame.draw.rect(screen, color, 
-                                     (stack_x + (piece_width - standing_width) // 2,  # Center horizontally
-                                      stack_y,  # Place it at the correct Y-axis position
-                                      standing_width, 
-                                      standing_height))
+            # Display lying pieces
+            if piece.type in [PieceType.BLACK_LYING, PieceType.WHITE_LYING]:
+                # Draw border first
+                pygame.draw.rect(screen, border_color, 
+                                 (stack_x - border_thickness, stack_y - border_thickness, 
+                                  piece_width + 2 * border_thickness, piece_height + 2 * border_thickness))
+                # Draw the piece
+                pygame.draw.rect(screen, color, (stack_x, stack_y, piece_width, piece_height))
+            else:  # Handle standing pieces
+                # Standing pieces have 1/3 of the width of lying pieces, with the same height
+                standing_width = piece_width // 3  # Standing piece width is 1/3 of lying piece
+                standing_height = piece_height  # Standing piece height is the same as lying piece
 
-                stack_y -= piece_height + piece_margin  # Move upward and leave space between pieces
+                # Center the standing piece horizontally and draw border first
+                pygame.draw.rect(screen, border_color, 
+                                 (stack_x + (piece_width - standing_width) // 2 - border_thickness, 
+                                  stack_y - border_thickness, 
+                                  standing_width + 2 * border_thickness, 
+                                  standing_height + 2 * border_thickness))
+
+                # Draw the standing piece
+                pygame.draw.rect(screen, color, 
+                                 (stack_x + (piece_width - standing_width) // 2,  # Center horizontally
+                                  stack_y,  # Place it at the correct Y-axis position
+                                  standing_width, 
+                                  standing_height))
+
+            stack_y -= piece_height + piece_margin  # Move upward and leave space between pieces
+
+        # Display the label indicating if it's sub_stack or hovered_cell
+        if label:
+            font = pygame.font.SysFont(None, 30)  # Set up the font for the label
+            text_surface = font.render(label, True, BLACK)
+            label_width = text_surface.get_width()  # Get the width of the label
+            # Center the label horizontally with respect to the stack
+            label_x = stack_x + (piece_width - label_width) // 2
+            screen.blit(text_surface, (label_x, GRID_Y_OFFSET + CELL_SIZE * 4 - 20))  # Display the label just below the stack
+
+
 
             
 # Draw turn indicator function
@@ -364,6 +407,7 @@ def draw_game(place_mode,change_view, timer, time_left):
     draw_mode_indicator(place_mode)
     draw_changeView_button()
     draw_time_left_indicator(time_left)
+    draw_restart_button()
     
 
 
@@ -411,11 +455,14 @@ error_msg = None
 error_time = None
 
 def handle_move_click(row, col):
-    global selected_piece, valid_moves, error_position, error_msg, error_time, sub_stack, sub_stack_index, moves_started
+    global start_piece, selected_piece, valid_moves, error_position, error_msg, error_time
+    global sub_stack, sub_stack_index, moves_started, saved_board_state
 
     stack = game.board[row][col].stack
 
     if selected_piece is None:
+        sub_stack.insert(0, stack[sub_stack_index])
+        sub_stack_index -= 1
 
         if game.get_top_piece_opposite_color(row, col) or stack == []:
             error_msg = "Invalid move,\nread instructions"
@@ -424,9 +471,10 @@ def handle_move_click(row, col):
         else:
             # Select the piece
             selected_piece = (row, col)
+            start_piece = (row, col)
             valid_moves = game.get_valid_moves(row, col)
 
-    # If the clicked piece is the same as the previously clicked piece
+    # Same square is clicked
     elif selected_piece == (row, col):
 
         # Deselect the piece automatically if sub_stack is same as stack / empty stack
@@ -434,29 +482,29 @@ def handle_move_click(row, col):
             reset_moves_logic_vars()
             
         # Add brick to sub_stack
-        elif sub_stack_index == -1:
-            # .insert(insert_index, what_to_insert)
+        else:
             sub_stack.insert(0, stack[sub_stack_index])
             sub_stack_index -= 1
 
 
-
     elif (row, col) in valid_moves:
+        # If we are moving with a new sub_stack (larger than 1)
+        if len(sub_stack) > 1 and sub_stack_index == -1:
+            saved_board_state = game.board.copy()
+
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
-        if game.move_piece(from_row, from_col, row, col, sub_stack):
+        game.move_piece(from_row, from_col, row, col, sub_stack)
+        
+        if len(sub_stack) == 0:
+            game.switch_turn()
+            reset_moves_logic_vars()
+        # reset_moves_logic_vars()
+        moves_started = True
+        selected_piece = (row, col)
+        valid_moves = game.get_valid_moves(row, col)
 
-            # If we are moving with a new sub_stack (larger than 1)
-            if len(sub_stack) > 1 and sub_stack_index == -1:
-                saved_board_state = game.board.copy()
-            
-            if len(sub_stack) == 0:
-                game.switch_turn()
-                reset_moves_logic_vars()
-            # reset_moves_logic_vars()
-            moves_started = True
-
-    elif (row, col) not in valid_moves:
+    else:
         print("Square not in valid moves")
 
         error_msg = "Invalid move,\nread instructions"
@@ -472,11 +520,13 @@ def cancel_move_with_stack():
     
 
 def reset_moves_logic_vars():
-    global selected_piece, valid_moves, sub_stack, sub_stack_index
+    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_index
     selected_piece = None
+    start_piece = None
     valid_moves = []
     sub_stack = []
     sub_stack_index = -1
+    draw_game
 
 # Handle mouse click function
 def handle_click():
@@ -692,7 +742,6 @@ def game_loop():
             
                 
         draw_game(place_mode,change_view, timer, time_left)
-        draw_restart_button()
         
         if error_msg:
             draw_error(error_msg,BLACK,error_position[0],error_position[1],error_time)
@@ -751,8 +800,8 @@ def game_loop():
                         
                     elif click_position == "Restart Button":
                         print("Restart button clicked")
-                        game.restart_game()  # Reset the game
                         reset_moves_logic_vars()
+                        game.restart_game()  # Reset the game
                         print("Game restarted")
                         
                     elif click_position == "ChangeView Button":

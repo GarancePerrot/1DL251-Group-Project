@@ -65,28 +65,25 @@ class Game:
 
     def move_piece(self, from_row, from_col, to_row, to_col, sub_stack):
 
-        if not self.is_valid_move(from_row, from_col, to_row, to_col):
-            return False
+        if self.is_valid_move(from_row, from_col, to_row, to_col):
 
-        # Move the top piece from the source stack to the destination stack
-        source_stack = self.board[from_row][from_col].stack
-        dest_stack = self.board[to_row][to_col].stack
+            # Move the top piece from the source stack to the destination stack
+            source_stack = self.board[from_row][from_col].stack
+            dest_stack = self.board[to_row][to_col].stack
 
-        # Check if destination stack has space
-        if len(dest_stack) < MAX_STACK_HEIGHT:
-            for i in range(len(source_stack) - 1, -1, -1):
-                if source_stack[i].type == PieceType.BLACK_STANDING and self.current_player == PlayerColor.BLACK:
-                    break
-                    #FIXFIXFIX
+            # Check if destination stack has space
+            if len(dest_stack) < MAX_STACK_HEIGHT:
+                for i in range(len(source_stack) - 1, -1, -1):
+                    if source_stack[i].type == PieceType.BLACK_STANDING and self.current_player == PlayerColor.BLACK:
+                        break
+                        #FIXFIXFIX
 
-            """ PieceType.BLACK_STANDING if color == PlayerColor.BLACK and is_standing else \
-            PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
-                PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
-            #förut
-            dest_stack.append(source_stack[-1])
-            source_stack.pop()
-
-        return True
+                """ PieceType.BLACK_STANDING if color == PlayerColor.BLACK and is_standing else \
+                PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
+                    PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
+                #förut
+                dest_stack.append(sub_stack[0])
+                source_stack.pop()
 
     # Depth First Search to check if the player has a valid path connecting two sides
     def dfs(self, player, row, col, visited, side_flags):
