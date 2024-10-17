@@ -418,14 +418,33 @@ def handle_move_click(row, col):
             error_msg = "Invalid move,\nread instructions"
             error_position = (row,col)
             error_time = time()
+            return
+
+        # If a valid piece is selected, proceed with selection
+        sub_stack.insert(0, stack[-sub_stack_amount - 1])
+        sub_stack_amount += 1
+        selected_piece = (row, col)  # Set the selected piece
+        start_piece = (row, col)
+        valid_moves = game.get_valid_moves(row, col, selected_piece)
+
+    # If the same square is clicked more than max, deselect the piece
+    elif selected_piece == (row, col) and moves_started == False:
+        if len(sub_stack) == len(stack):
+            reset_moves_logic_vars()  # Reset selection state
         else:
-            # Select the piece
-            selected_piece = (row, col)
-            valid_moves = game.get_valid_moves(row, col)
-    elif selected_piece == (row, col):
-        # Deselect the piece if the same square is clicked again
-        reset_moves_preview_visuals()
+            sub_stack.insert(0, stack[-sub_stack_amount - 1])
+            sub_stack_amount += 1
+
+    # If a valid move location is clicked, execute the move
     elif (row, col) in valid_moves:
+
+        # If we are moving with a new sub_stack (larger than 1)
+        if len(sub_stack) > 1 and sub_stack_amount == -1:
+            saved_board_state = game.board.copy()
+            sub_stack = stack[-sub_stack_amount : -1]
+
+        stack = stack[:len(stack) - sub_stack_amount - 1]
+
         # Move the piece if the destination is valid
         from_row, from_col = selected_piece
         if game.move_piece(from_row, from_col, row, col):
@@ -433,8 +452,14 @@ def handle_move_click(row, col):
             # Potential problem when moving with stacks. Make a check first. Right now we use booleans. 
             # Could return remaining pieces instead. Switch turns if zero.
             game.switch_turn()
-            reset_moves_preview_visuals()
-    elif (row, col) not in valid_moves:
+            reset_moves_logic_vars()  
+            return  
+
+        moves_started = True
+        selected_piece = (row, col)
+        valid_moves = game.get_valid_moves(row, col,selected_piece)
+
+    else:
         print("Square not in valid moves")
 
         error_msg = "Invalid move,\nread instructions"
@@ -442,8 +467,19 @@ def handle_move_click(row, col):
         error_time = time()
 
 
-def reset_moves_preview_visuals():
-    global selected_piece, valid_moves
+
+
+
+
+def cancel_move_with_stack():
+    global sub_stack, sub_stack_amount, saved_board_state, moves_started
+    
+    reset_moves_logic_vars()
+    game.board = saved_board_state.copy()
+    
+
+def reset_moves_logic_vars():
+    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_amount
     selected_piece = None
     valid_moves = []
 

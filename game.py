@@ -63,11 +63,12 @@ class Game:
                 return top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]
 
 
-    def move_piece(self, from_row, from_col, to_row, to_col):
-        stack = self.board[from_row][from_col].stack
-        if len(stack) > 0:
-            if not self.is_valid_move(from_row, from_col, to_row, to_col) or stack[0].type == PieceType.EMPTY:
-                return False
+    def move_piece(self, selected_piece, start_piece, to_row, to_col, sub_stack):
+
+        from_row, from_col = selected_piece
+        start_row, start_col = start_piece
+
+        if self.is_valid_move(from_row, from_col, to_row, to_col, selected_piece):
 
         # Move the top piece from the source stack to the destination stack
         source_stack = self.board[from_row][from_col].stack
@@ -160,13 +161,16 @@ class Game:
     def get_remaining_pieces(self, color):
         return self.black_pieces_left if color == PlayerColor.BLACK else self.white_pieces_left
 
-    def get_valid_moves(self, row, col):
+    def get_valid_moves(self, row, col, selected_piece):
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
         moves = []
 
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc
             if 0 <= new_row < self.GRID_SIZE and 0 <= new_col < self.GRID_SIZE:
+                if (new_row, new_col) == selected_piece:
+                    continue
+                
                 # Check if the move is within bounds and if the stack height is less than MAX_STACK_HEIGHT
                 if len(self.board[new_row][new_col].stack) < MAX_STACK_HEIGHT:
                     # Check if there is any piece in the stack and if it's not a standing piece
@@ -178,9 +182,9 @@ class Game:
 
         return moves
 
-    def is_valid_move(self, from_row, from_col, to_row, to_col):
+    def is_valid_move(self, from_row, from_col, to_row, to_col, selected_piece):
         # Check if the target move is in the list of valid moves from the starting position
-        return (to_row, to_col) in self.get_valid_moves(from_row, from_col)
+        return (to_row, to_col) in self.get_valid_moves(from_row, from_col, selected_piece)
 
     
     def is_valid_placement(self, row, col):
