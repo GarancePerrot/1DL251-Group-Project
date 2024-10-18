@@ -70,25 +70,30 @@ class Game:
 
         if self.is_valid_move(from_row, from_col, to_row, to_col, selected_piece):
 
-        # Move the top piece from the source stack to the destination stack
-        source_stack = self.board[from_row][from_col].stack
-        dest_stack = self.board[to_row][to_col].stack
+            # Move the top piece from the source stack to the destination stack
+            source_stack = self.board[start_row][start_col].stack
+            dest_stack = self.board[to_row][to_col].stack
 
-        # Check if destination stack has space
-        if len(dest_stack) < MAX_STACK_HEIGHT:
-            for i in range(len(source_stack) - 1, -1, -1):
-                if source_stack[i].type == PieceType.BLACK_STANDING and self.current_player == PlayerColor.BLACK:
-                    break
-                    #FIXFIXFIX
+            # Check if destination stack has space
+            if len(dest_stack) < MAX_STACK_HEIGHT:
+                for i in range(len(source_stack) - 1, -1, -1):
+                    if source_stack[i].type == PieceType.BLACK_STANDING and self.current_player == PlayerColor.BLACK:
+                        break
+                        #FIXFIXFIX
 
-            """ PieceType.BLACK_STANDING if color == PlayerColor.BLACK and is_standing else \
-            PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
-                PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
-            #förut
-            dest_stack.append(source_stack[-1])
-            source_stack.pop()
+                """ PieceType.BLACK_STANDING if color == PlayerColor.BLACK and is_standing else \
+                PieceType.BLACK_LYING if color == PlayerColor.BLACK else \
+                    PieceType.WHITE_STANDING if is_standing else PieceType.WHITE_LYING """
+                #förut
+                if len(sub_stack) > 0:
 
-        return True
+                    # clean this logic up. maybe use bools for color and standing
+                    if (sub_stack[0].type == PieceType.BLACK_STANDING or sub_stack[0].type == PieceType.BLACK_LYING) and self.current_player == PlayerColor.BLACK or (sub_stack[0].type == PieceType.WHITE_STANDING or sub_stack[0].type == PieceType.WHITE_LYING) and self.current_player == PlayerColor.WHITE:
+                        dest_stack.append(sub_stack[0])
+                        sub_stack.pop(0)
+                    else:
+                        source_stack.append(sub_stack[0])
+                        sub_stack.pop(0)
 
     # Depth First Search to check if the player has a valid path connecting two sides
     def dfs(self, player, row, col, visited, side_flags):
@@ -201,10 +206,11 @@ class Game:
         return True
 
     def restart_game(self):
-        self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]  # Reset the board to Stack objects
-        self.current_player = PlayerColor.BLACK  # Reset to player 1
-        self.black_pieces_left = 15  # Reset black pieces
-        self.white_pieces_left = 15  # Reset white pieces
+        # Reset game board, player turns, and piece counts
+        self.board = [[Stack() for _ in range(self.GRID_SIZE)] for _ in range(self.GRID_SIZE)]
+        self.current_player = PlayerColor.BLACK
+        self.black_pieces_left = 15
+        self.white_pieces_left = 15
         print("Game reset successful")
         
     def get_hovered_cell(self, mouse_pos, grid_x_offset, cell_size):
