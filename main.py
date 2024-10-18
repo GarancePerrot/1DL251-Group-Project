@@ -53,6 +53,7 @@ error_font = pygame.font.SysFont(None, 30)
 selected_piece = None  # Stores the last clicked square
 start_piece = None  # Stores the starting piece for a move
 valid_moves = []  # Stores valid adjacent moves
+visited_squares = []
 
 sub_stack = []
 sub_stack_amount = 0
@@ -469,7 +470,7 @@ error_time = None
 
 def handle_move_click(row, col):
     global start_piece, selected_piece, valid_moves, error_position, error_msg, error_time
-    global sub_stack, sub_stack_amount, moves_started, saved_board_state
+    global sub_stack, sub_stack_amount, moves_started, saved_board_state, visited_squares
 
     stack = game.board[row][col].stack
 
@@ -493,7 +494,7 @@ def handle_move_click(row, col):
         sub_stack_amount += 1
         selected_piece = (row, col)  # Set the selected piece
         start_piece = (row, col)
-        valid_moves = game.get_valid_moves(row, col, selected_piece)
+        valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
     # If the same square is clicked more than max, deselect the piece
     elif selected_piece == (row, col) and moves_started == False:
@@ -514,18 +515,18 @@ def handle_move_click(row, col):
         stack = stack[:len(stack) - sub_stack_amount - 1]
 
         # Move the piece if the destination is valid
-        from_row, from_col = selected_piece
-        game.move_piece(selected_piece, start_piece, row, col, sub_stack)
+        game.move_piece(selected_piece, start_piece, row, col, sub_stack, visited_squares)
+        visited_squares += [(row, col)]
 
         # If this was the last move
         if len(sub_stack) == 0:
             game.switch_turn()
-            reset_moves_logic_vars()  
+            reset_moves_logic_vars()
             return  
 
         moves_started = True
         selected_piece = (row, col)
-        valid_moves = game.get_valid_moves(row, col,selected_piece)
+        valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
     else:
         print("Square not in valid moves")
@@ -547,12 +548,14 @@ def cancel_move_with_stack():
     
 
 def reset_moves_logic_vars():
-    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_amount
+    global selected_piece, start_piece, valid_moves, sub_stack, sub_stack_amount, moves_started, visited_squares
     selected_piece = None
     start_piece = None
     valid_moves = []
     sub_stack = []
     sub_stack_amount = 0
+    moves_started = False
+    visited_squares = []
     
 # Handle mouse click function
 def handle_click():
