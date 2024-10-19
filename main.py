@@ -55,6 +55,7 @@ start_piece = None  # Stores the starting piece for a move
 valid_moves = []  # Stores valid adjacent moves
 visited_squares = []
 
+original_stack = []
 sub_stack = []
 sub_stack_amount = 0
 moves_started = False
@@ -66,6 +67,8 @@ saved_board_state = []
 def draw_grid(place_mode):
     global selected_piece, valid_moves, start_piece
     screen.fill(CREME)
+
+    print("GRID IS DRAWN....")
 
     # Draw grid lines and highlight clicked square
     for i in range(5):
@@ -431,7 +434,7 @@ def draw_error(text, color, row, col, t, text_position=(10, 50)):
     #Get the coordinates for the current cell
     # cell_row, cell_col = current_cell 
     rect_x = GRID_X_OFFSET + col * CELL_SIZE
-    rect_y = GRID_Y_OFFSET + row * CELL_SIZE 
+    rect_y = GRID_Y_OFFSET + row * CELL_SIZE
 
     #Split the text at every line break
     lines = text.split("\n")
@@ -471,26 +474,26 @@ error_time = None
 def handle_move_click(row, col):
     global start_piece, selected_piece, valid_moves, error_position, error_msg, error_time
     global sub_stack, sub_stack_amount, moves_started, saved_board_state, visited_squares
+    global original_stack
 
-    stack = game.board[row][col].stack
 
     # If no piece is selected
     if selected_piece is None:
+        original_stack = game.board[row][col].stack
+
         # Check if an empty square or opponent's piece is clicked
-        if stack == []:  # Empty square
+        if original_stack == []:  # Empty square
             error_msg = "Cannot select an empty square"
             error_position = (row, col)
             error_time = time()
-            return
 
         if game.get_top_piece_opposite_color(row, col):  # Opponent's piece
             error_msg = "Cannot move opponent's piece"
             error_position = (row, col)
             error_time = time()
-            return
 
         # If a valid piece is selected, proceed with selection
-        sub_stack.insert(0, stack[-sub_stack_amount - 1])
+        sub_stack.insert(0, original_stack[-sub_stack_amount - 1])
         sub_stack_amount += 1
         selected_piece = (row, col)  # Set the selected piece
         start_piece = (row, col)
@@ -498,33 +501,46 @@ def handle_move_click(row, col):
 
     # If the same square is clicked more than max, deselect the piece
     elif selected_piece == (row, col) and moves_started == False:
-        if len(sub_stack) == len(stack):
+        
+
+        if len(sub_stack) == len(original_stack):
             reset_moves_logic_vars()  # Reset selection state
+            # CLEAN
         else:
-            sub_stack.insert(0, stack[-sub_stack_amount - 1])
+            sub_stack.insert(0, original_stack[-sub_stack_amount - 1])
             sub_stack_amount += 1
+            visited_squares += [(row, col)]
 
     # If a valid move location is clicked, execute the move
     elif (row, col) in valid_moves:
+        if not moves_started:
+            saved_board_state = game.board.copy()
+            print("saved board state:\n", saved_board_state)
+            strip_original_stack()
+
+        moves_started = True
 
         # If we are moving with a new sub_stack (larger than 1)
         if len(sub_stack) > 1 and sub_stack_amount == -1:
-            saved_board_state = game.board.copy()
-            sub_stack = stack[-sub_stack_amount : -1]
-
-        stack = stack[:len(stack) - sub_stack_amount - 1]
+            sub_stack = original_stack[-sub_stack_amount : -1]
 
         # Move the piece if the destination is valid
         game.move_piece(selected_piece, start_piece, row, col, sub_stack, visited_squares)
         visited_squares += [(row, col)]
 
         # If this was the last move
-        if len(sub_stack) == 0:
+        if len(valid_moves) == 0:
+            revert_to_saved_state()
+            print("Square not in valid moves")
+
+            error_msg = "Invalid move,\nread instructions"
+            error_position = (row, col)
+            error_time = time()
+
+        elif len(sub_stack) == 0:
             game.switch_turn()
             reset_moves_logic_vars()
-            return  
 
-        moves_started = True
         selected_piece = (row, col)
         valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
@@ -538,10 +554,15 @@ def handle_move_click(row, col):
 
 
 
+def strip_original_stack():
+    global original_stack, sub_stack_amount, start_piece
 
+    original_stack = original_stack[:len(original_stack) - sub_stack_amount]
+    print("start piece: ", start_piece)
+    game.board[start_piece[0]][start_piece[1]].stack = original_stack.copy()
 
-def cancel_move_with_stack():
-    global sub_stack, sub_stack_amount, saved_board_state, moves_started
+def revert_to_saved_state():
+    global saved_board_state
     
     reset_moves_logic_vars()
     game.board = saved_board_state.copy()
@@ -559,7 +580,6 @@ def reset_moves_logic_vars():
     
 # Handle mouse click function
 def handle_click():
-    global selected_piece, valid_moves
     x, y = pygame.mouse.get_pos()
 
     # Check if the click is on the grid
@@ -875,7 +895,8 @@ def game_loop():
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         place_mode = not place_mode
-                        selected_piece = None
+                        if sub_stack_amount != 0:
+                            revert_to_saved_state()
                     elif event.key == pygame.K_p:  # Press 'P' to open the popup
                         popup_open = True
 
