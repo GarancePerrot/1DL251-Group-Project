@@ -68,8 +68,6 @@ def draw_grid(place_mode):
     global selected_piece, valid_moves, start_piece
     screen.fill(CREME)
 
-    print("GRID IS DRAWN....")
-
     # Draw grid lines and highlight clicked square
     for i in range(5):
         pygame.draw.line(screen, BLACK, ((i + 2) * CELL_SIZE, GRID_Y_OFFSET),
@@ -480,6 +478,7 @@ def handle_move_click(row, col):
     # If no piece is selected
     if selected_piece is None:
         original_stack = game.board[row][col].stack
+        print("original stack: ", original_stack)
 
         # Check if an empty square or opponent's piece is clicked
         if original_stack == []:  # Empty square
@@ -487,7 +486,7 @@ def handle_move_click(row, col):
             error_position = (row, col)
             error_time = time()
 
-        if game.get_top_piece_opposite_color(row, col):  # Opponent's piece
+        elif game.get_top_piece_opposite_color(row, col):  # Opponent's piece
             error_msg = "Cannot move opponent's piece"
             error_position = (row, col)
             error_time = time()
@@ -564,6 +563,7 @@ def strip_original_stack():
 def revert_to_saved_state():
     global saved_board_state
     
+    print("trying to revert to saved state")
     reset_moves_logic_vars()
     game.board = saved_board_state.copy()
     
