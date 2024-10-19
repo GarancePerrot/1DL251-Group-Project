@@ -491,13 +491,13 @@ def handle_move_click(row, col):
             error_msg = "Cannot move opponent's piece"
             error_position = (row, col)
             error_time = time()
-
-        # If a valid piece is selected, proceed with selection
-        sub_stack.insert(0, original_stack[-sub_stack_amount - 1])
-        sub_stack_amount += 1
-        selected_piece = (row, col)  # Set the selected piece
-        start_piece = (row, col)
-        valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
+        else:
+            # If a valid piece is selected, proceed with selection
+            sub_stack.insert(0, original_stack[-sub_stack_amount - 1])
+            sub_stack_amount += 1
+            selected_piece = (row, col)  # Set the selected piece
+            start_piece = (row, col)
+            valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
     # If the same square is clicked more than max, deselect the piece
     elif selected_piece == (row, col) and moves_started == False:
@@ -528,6 +528,9 @@ def handle_move_click(row, col):
         game.move_piece(selected_piece, start_piece, row, col, sub_stack, visited_squares)
         visited_squares += [(row, col)]
 
+        selected_piece = (row, col)
+        valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
+
         # If this was the last move
         if len(valid_moves) == 0:
             revert_to_saved_state()
@@ -540,9 +543,6 @@ def handle_move_click(row, col):
         elif len(sub_stack) == 0:
             game.switch_turn()
             reset_moves_logic_vars()
-
-        selected_piece = (row, col)
-        valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
     else:
         print("Square not in valid moves")
@@ -943,10 +943,12 @@ def game_loop():
                 winner = "Black"
                 game_end = True
                 time_left = "0"
+                reset_moves_logic_vars()
             elif game.check_win_dfs(PlayerColor.WHITE):
                 winner = "White"
                 game_end = True
                 time_left = "0"
+                reset_moves_logic_vars()
             elif game.is_draw():
                 game_end = True
                 time_left = "0"
