@@ -63,12 +63,12 @@ class Game:
                 return top_piece.type in [PieceType.BLACK_LYING, PieceType.BLACK_STANDING]
 
 
-    def move_piece(self, selected_piece, start_piece, to_row, to_col, sub_stack):
+    def move_piece(self, selected_piece, start_piece, to_row, to_col, sub_stack, visited_squares):
 
         from_row, from_col = selected_piece
         start_row, start_col = start_piece
 
-        if self.is_valid_move(from_row, from_col, to_row, to_col, selected_piece):
+        if self.is_valid_move(from_row, from_col, to_row, to_col, selected_piece, visited_squares):
 
             # Move the top piece from the source stack to the destination stack
             source_stack = self.board[start_row][start_col].stack
@@ -166,7 +166,7 @@ class Game:
     def get_remaining_pieces(self, color):
         return self.black_pieces_left if color == PlayerColor.BLACK else self.white_pieces_left
 
-    def get_valid_moves(self, row, col, selected_piece):
+    def get_valid_moves(self, row, col, selected_piece, visited_squares):
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Right, Left, Down, Up
         moves = []
 
@@ -174,6 +174,7 @@ class Game:
             new_row, new_col = row + dr, col + dc
             if 0 <= new_row < self.GRID_SIZE and 0 <= new_col < self.GRID_SIZE:
                 if (new_row, new_col) == selected_piece:
+                    # Do not add the selected piece as a valid move
                     continue
                 
                 # Check if the move is within bounds and if the stack height is less than MAX_STACK_HEIGHT
@@ -183,13 +184,14 @@ class Game:
                         top_piece = self.board[new_row][new_col].stack[-1].type
                         if top_piece in [PieceType.BLACK_STANDING, PieceType.WHITE_STANDING]:
                             continue  # Skip adding this move if it's a standing piece
-                    moves.append((new_row, new_col))
+                    if not (new_row, new_col) in visited_squares:
+                        moves.append((new_row, new_col))
 
         return moves
 
-    def is_valid_move(self, from_row, from_col, to_row, to_col, selected_piece):
+    def is_valid_move(self, from_row, from_col, to_row, to_col, selected_piece, visited_squares):
         # Check if the target move is in the list of valid moves from the starting position
-        return (to_row, to_col) in self.get_valid_moves(from_row, from_col, selected_piece)
+        return (to_row, to_col) in self.get_valid_moves(from_row, from_col, selected_piece, visited_squares)
 
     
     def is_valid_placement(self, row, col):
