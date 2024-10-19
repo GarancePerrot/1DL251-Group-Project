@@ -1,5 +1,6 @@
 import pygame
 import sys
+import copy
 from time import time
 import math
 from game import Game, PlayerColor, PieceType  # importing classes from game file
@@ -505,6 +506,12 @@ def handle_move_click(row, col):
 
     # If a valid move location is clicked, execute the move
     elif (row, col) in valid_moves:
+        if not moves_started:
+            saved_board_state = copy.deepcopy(game.board)
+            print("saved board state:\n", saved_board_state)
+            strip_original_stack()
+
+        moves_started = True
 
         # If we are moving with a new sub_stack (larger than 1)
         if len(sub_stack) > 1 and sub_stack_amount == -1:
