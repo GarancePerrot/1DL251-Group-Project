@@ -532,12 +532,12 @@ def handle_move_click(row, col):
 
         # If this was the last move
         if len(valid_moves) == 0:
-            revert_to_saved_state()
             print("Square not in valid moves")
 
             error_msg = "Invalid move,\nread instructions"
-            error_position = (row, col)
+            error_position = start_piece
             error_time = time()
+            revert_to_saved_state()
 
         elif len(sub_stack) == 0:
             game.switch_turn()
