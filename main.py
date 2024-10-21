@@ -483,12 +483,12 @@ def handle_move_click(row, col):
 
         # Check if an empty square or opponent's piece is clicked
         if original_stack == []:  # Empty square
-            error_msg = "Cannot select an empty square"
+            error_msg = "Cannot select an empty square."
             error_position = (row, col)
             error_time = time()
 
         elif game.get_top_piece_opposite_color(row, col):  # Opponent's piece
-            error_msg = "Cannot move opponent's piece"
+            error_msg = "Cannot move opponent's piece."
             error_position = (row, col)
             error_time = time()
         else:
@@ -515,7 +515,6 @@ def handle_move_click(row, col):
     elif (row, col) in valid_moves:
         if not moves_started:
             saved_board_state = copy.deepcopy(game.board)
-            print("saved board state:\n", saved_board_state)
             strip_original_stack()
 
         moves_started = True
@@ -532,10 +531,10 @@ def handle_move_click(row, col):
         valid_moves = game.get_valid_moves(row, col, selected_piece, visited_squares)
 
         # If this was the last move
-        if len(valid_moves) == 0:
+        if len(valid_moves) == 0 and len(sub_stack) > 0:
             print("Square not in valid moves")
 
-            error_msg = "Invalid move,\nread instructions"
+            error_msg = "No available moves,\n try again."
             error_position = start_piece
             error_time = time()
             revert_to_saved_state()
@@ -545,8 +544,6 @@ def handle_move_click(row, col):
             reset_moves_logic_vars()
 
     else:
-        print("Square not in valid moves")
-
         error_msg = "Invalid move,\nread instructions"
         error_position = (row, col)
         error_time = time()
