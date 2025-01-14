@@ -809,6 +809,6 @@ def game_loop():
 
         pygame.display.update()
 
-
+#stg
 # Start the game
 game_loop()
